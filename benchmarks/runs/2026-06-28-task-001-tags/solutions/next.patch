@@ -1,0 +1,279 @@
+diff --git a/examples/bench-app-next/app/api/notes/route.ts b/examples/bench-app-next/app/api/notes/route.ts
+index fb97033..0746ec5 100644
+--- a/examples/bench-app-next/app/api/notes/route.ts
++++ b/examples/bench-app-next/app/api/notes/route.ts
+@@ -1,12 +1,13 @@
+ import { NextResponse } from 'next/server';
+ import { isAuthenticated } from '@/lib/auth';
+-import { createNote, listNotes } from '@/lib/notes';
++import { createNote, listNotes, normalizeTags } from '@/lib/notes';
+ 
+-export async function GET() {
++export async function GET(req: Request) {
+   if (!(await isAuthenticated())) {
+     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+   }
+-  return NextResponse.json({ notes: listNotes() });
++  const tag = new URL(req.url).searchParams.get('tag') ?? undefined;
++  return NextResponse.json({ notes: listNotes(tag || undefined) });
+ }
+ 
+ export async function POST(req: Request) {
+@@ -16,10 +17,12 @@ export async function POST(req: Request) {
+ 
+   let title = '';
+   let body = '';
++  let tags: string[] = [];
+   try {
+     const json = await req.json();
+     title = typeof json?.title === 'string' ? json.title : '';
+     body = typeof json?.body === 'string' ? json.body : '';
++    tags = normalizeTags(json?.tags);
+   } catch {
+     // fall through to validation
+   }
+@@ -28,5 +31,5 @@ export async function POST(req: Request) {
+     return NextResponse.json({ error: 'title and body are required' }, { status: 400 });
+   }
+ 
+-  return NextResponse.json({ note: createNote(title, body) }, { status: 201 });
++  return NextResponse.json({ note: createNote(title, body, tags) }, { status: 201 });
+ }
+diff --git a/examples/bench-app-next/app/create-note-form.tsx b/examples/bench-app-next/app/create-note-form.tsx
+index 51b7de8..29edf09 100644
+--- a/examples/bench-app-next/app/create-note-form.tsx
++++ b/examples/bench-app-next/app/create-note-form.tsx
+@@ -7,17 +7,23 @@ export default function CreateNoteForm() {
+   const router = useRouter();
+   const [title, setTitle] = useState('');
+   const [body, setBody] = useState('');
++  const [tags, setTags] = useState('');
+ 
+   async function onSubmit(e: React.FormEvent) {
+     e.preventDefault();
++    const tagList = tags
++      .split(',')
++      .map((t) => t.trim())
++      .filter(Boolean);
+     const res = await fetch('/api/notes', {
+       method: 'POST',
+       headers: { 'content-type': 'application/json' },
+-      body: JSON.stringify({ title, body }),
++      body: JSON.stringify({ title, body, tags: tagList }),
+     });
+     if (res.ok) {
+       setTitle('');
+       setBody('');
++      setTags('');
+       router.refresh();
+     }
+   }
+@@ -37,6 +43,11 @@ export default function CreateNoteForm() {
+         rows={3}
+         required
+       />
++      <input
++        value={tags}
++        onChange={(e) => setTags(e.target.value)}
++        placeholder="Tags (comma-separated)"
++      />
+       <button type="submit" style={{ justifySelf: 'start' }}>
+         Add note
+       </button>
+diff --git a/examples/bench-app-next/app/notes/[id]/page.tsx b/examples/bench-app-next/app/notes/[id]/page.tsx
+index b1e1fff..07b8b5b 100644
+--- a/examples/bench-app-next/app/notes/[id]/page.tsx
++++ b/examples/bench-app-next/app/notes/[id]/page.tsx
+@@ -22,6 +22,26 @@ export default async function NoteDetailPage({
+         <Link href="/">&larr; Back to notes</Link>
+       </p>
+       <h1>{note.title}</h1>
++      {note.tags.length > 0 && (
++        <p style={{ margin: '4px 0', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
++          {note.tags.map((t) => (
++            <Link
++              key={t}
++              href={`/?tag=${encodeURIComponent(t)}`}
++              style={{
++                fontSize: 12,
++                background: '#eef',
++                color: '#225',
++                borderRadius: 12,
++                padding: '2px 8px',
++                textDecoration: 'none',
++              }}
++            >
++              #{t}
++            </Link>
++          ))}
++        </p>
++      )}
+       <p style={{ whiteSpace: 'pre-wrap' }}>{note.body}</p>
+       {note.summary && (
+         <p style={{ color: '#0a7', fontStyle: 'italic' }}>Summary: {note.summary}</p>
+diff --git a/examples/bench-app-next/app/page.tsx b/examples/bench-app-next/app/page.tsx
+index 8e24698..321bfca 100644
+--- a/examples/bench-app-next/app/page.tsx
++++ b/examples/bench-app-next/app/page.tsx
+@@ -8,9 +8,14 @@ import LogoutButton from './logout-button';
+ 
+ export const dynamic = 'force-dynamic';
+ 
+-export default async function HomePage() {
++export default async function HomePage({
++  searchParams,
++}: {
++  searchParams: Promise<{ tag?: string }>;
++}) {
+   if (!(await isAuthenticated())) redirect('/login');
+-  const notes = listNotes();
++  const { tag } = await searchParams;
++  const notes = listNotes(tag || undefined);
+ 
+   return (
+     <main>
+@@ -21,6 +26,15 @@ export default async function HomePage() {
+ 
+       <CreateNoteForm />
+ 
++      {tag && (
++        <p style={{ color: '#444' }}>
++          Filtering by tag: <strong>{tag}</strong>{' '}
++          <Link href="/" style={{ color: '#06c' }}>
++            (clear)
++          </Link>
++        </p>
++      )}
++
+       {notes.length === 0 ? (
+         <p style={{ color: '#666' }}>No notes yet.</p>
+       ) : (
+@@ -31,6 +45,26 @@ export default async function HomePage() {
+                 {note.title}
+               </Link>
+               <p style={{ margin: '4px 0', color: '#444' }}>{note.body}</p>
++              {note.tags.length > 0 && (
++                <p style={{ margin: '4px 0', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
++                  {note.tags.map((t) => (
++                    <Link
++                      key={t}
++                      href={`/?tag=${encodeURIComponent(t)}`}
++                      style={{
++                        fontSize: 12,
++                        background: '#eef',
++                        color: '#225',
++                        borderRadius: 12,
++                        padding: '2px 8px',
++                        textDecoration: 'none',
++                      }}
++                    >
++                      #{t}
++                    </Link>
++                  ))}
++                </p>
++              )}
+               {note.summary && (
+                 <p style={{ margin: '4px 0', color: '#0a7', fontStyle: 'italic' }}>
+                   Summary: {note.summary}
+diff --git a/examples/bench-app-next/lib/db.ts b/examples/bench-app-next/lib/db.ts
+index 6d35960..22757c8 100644
+--- a/examples/bench-app-next/lib/db.ts
++++ b/examples/bench-app-next/lib/db.ts
+@@ -25,10 +25,17 @@ export function getDb(): Database.Database {
+       title TEXT NOT NULL,
+       body TEXT NOT NULL,
+       summary TEXT,
+-      created_at TEXT NOT NULL
++      created_at TEXT NOT NULL,
++      tags TEXT NOT NULL DEFAULT '[]'
+     );
+   `);
+ 
++  // Migrate older databases that predate the tags column.
++  const cols = db.prepare('PRAGMA table_info(notes)').all() as { name: string }[];
++  if (!cols.some((c) => c.name === 'tags')) {
++    db.exec("ALTER TABLE notes ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'");
++  }
++
+   // Seed the single demo user once.
+   const seeded = db.prepare('SELECT id FROM users WHERE email = ?').get('demo@example.com');
+   if (!seeded) {
+diff --git a/examples/bench-app-next/lib/notes.ts b/examples/bench-app-next/lib/notes.ts
+index 74e45e1..f109f63 100644
+--- a/examples/bench-app-next/lib/notes.ts
++++ b/examples/bench-app-next/lib/notes.ts
+@@ -6,6 +6,7 @@ export interface Note {
+   body: string;
+   summary: string | null;
+   createdAt: string;
++  tags: string[];
+ }
+ 
+ interface NoteRow {
+@@ -14,6 +15,17 @@ interface NoteRow {
+   body: string;
+   summary: string | null;
+   created_at: string;
++  tags: string | null;
++}
++
++function parseTags(raw: string | null): string[] {
++  if (!raw) return [];
++  try {
++    const parsed = JSON.parse(raw);
++    return Array.isArray(parsed) ? parsed.filter((t): t is string => typeof t === 'string') : [];
++  } catch {
++    return [];
++  }
+ }
+ 
+ function toNote(row: NoteRow): Note {
+@@ -23,14 +35,31 @@ function toNote(row: NoteRow): Note {
+     body: row.body,
+     summary: row.summary,
+     createdAt: row.created_at,
++    tags: parseTags(row.tags),
+   };
+ }
+ 
+-export function listNotes(): Note[] {
++/** Normalize an arbitrary tags input into a clean string[] (trimmed, de-duped, no empties). */
++export function normalizeTags(input: unknown): string[] {
++  if (!Array.isArray(input)) return [];
++  const out: string[] = [];
++  for (const item of input) {
++    if (typeof item !== 'string') continue;
++    const tag = item.trim();
++    if (tag && !out.includes(tag)) out.push(tag);
++  }
++  return out;
++}
++
++export function listNotes(tag?: string): Note[] {
+   const rows = getDb()
+     .prepare('SELECT * FROM notes ORDER BY id DESC')
+     .all() as NoteRow[];
+-  return rows.map(toNote);
++  const notes = rows.map(toNote);
++  if (tag) {
++    return notes.filter((n) => n.tags.includes(tag));
++  }
++  return notes;
+ }
+ 
+ export function getNote(id: number): Note | null {
+@@ -40,11 +69,11 @@ export function getNote(id: number): Note | null {
+   return row ? toNote(row) : null;
+ }
+ 
+-export function createNote(title: string, body: string): Note {
++export function createNote(title: string, body: string, tags: string[] = []): Note {
+   const createdAt = new Date().toISOString();
+   const info = getDb()
+-    .prepare('INSERT INTO notes (title, body, summary, created_at) VALUES (?, ?, NULL, ?)')
+-    .run(title, body, createdAt);
++    .prepare('INSERT INTO notes (title, body, summary, created_at, tags) VALUES (?, ?, NULL, ?, ?)')
++    .run(title, body, createdAt, JSON.stringify(normalizeTags(tags)));
+   return getNote(Number(info.lastInsertRowid))!;
+ }
+ 

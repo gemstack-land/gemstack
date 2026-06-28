@@ -1,0 +1,307 @@
+diff --git a/examples/bench-app-gemstack/pages/api.ts b/examples/bench-app-gemstack/pages/api.ts
+index e782e91..bfbed59 100644
+--- a/examples/bench-app-gemstack/pages/api.ts
++++ b/examples/bench-app-gemstack/pages/api.ts
+@@ -5,6 +5,7 @@ export interface Note {
+   body: string
+   summary: string | null
+   createdAt: string
++  tags: string[]
+ }
+ 
+ async function json<T>(res: Response): Promise<T> {
+@@ -24,15 +25,16 @@ export const api = {
+   async logout(): Promise<void> {
+     await fetch('/api/logout', { method: 'POST' })
+   },
+-  async list(): Promise<Note[]> {
+-    const { notes } = await json<{ notes: Note[] }>(await fetch('/api/notes'))
++  async list(tag?: string): Promise<Note[]> {
++    const url = tag ? `/api/notes?tag=${encodeURIComponent(tag)}` : '/api/notes'
++    const { notes } = await json<{ notes: Note[] }>(await fetch(url))
+     return notes
+   },
+-  async create(title: string, body: string): Promise<Note> {
++  async create(title: string, body: string, tags: string[] = []): Promise<Note> {
+     const res = await fetch('/api/notes', {
+       method: 'POST',
+       headers: { 'content-type': 'application/json' },
+-      body: JSON.stringify({ title, body }),
++      body: JSON.stringify({ title, body, tags }),
+     })
+     return (await json<{ note: Note }>(res)).note
+   },
+diff --git a/examples/bench-app-gemstack/pages/index/+Page.tsx b/examples/bench-app-gemstack/pages/index/+Page.tsx
+index 089f9ac..1ce76ff 100644
+--- a/examples/bench-app-gemstack/pages/index/+Page.tsx
++++ b/examples/bench-app-gemstack/pages/index/+Page.tsx
+@@ -5,11 +5,20 @@ export default function NotesPage() {
+   const [notes, setNotes] = useState<Note[]>([])
+   const [title, setTitle] = useState('')
+   const [body, setBody] = useState('')
++  const [tags, setTags] = useState('')
++  const [filter, setFilter] = useState<string | null>(null)
+   const [loading, setLoading] = useState(true)
+ 
+-  async function refresh() {
++  function parseTagsInput(raw: string): string[] {
++    return raw
++      .split(',')
++      .map((t) => t.trim())
++      .filter(Boolean)
++  }
++
++  async function refresh(tag: string | null = filter) {
+     try {
+-      setNotes(await api.list())
++      setNotes(await api.list(tag ?? undefined))
+     } catch {
+       window.location.href = '/login'
+     } finally {
+@@ -18,15 +27,22 @@ export default function NotesPage() {
+   }
+ 
+   useEffect(() => {
+-    void refresh()
++    void refresh(null)
+   }, [])
+ 
++  async function applyFilter(tag: string | null) {
++    setFilter(tag)
++    setLoading(true)
++    await refresh(tag)
++  }
++
+   async function onCreate(e: React.FormEvent) {
+     e.preventDefault()
+     if (!title.trim() || !body.trim()) return
+-    await api.create(title, body)
++    await api.create(title, body, parseTagsInput(tags))
+     setTitle('')
+     setBody('')
++    setTags('')
+     await refresh()
+   }
+ 
+@@ -66,9 +82,22 @@ export default function NotesPage() {
+           rows={3}
+           style={{ display: 'block', width: '100%', marginBottom: 8 }}
+         />
++        <input
++          placeholder="Tags (comma-separated)"
++          value={tags}
++          onChange={(e) => setTags(e.target.value)}
++          style={{ display: 'block', width: '100%', marginBottom: 8 }}
++        />
+         <button type="submit">Add note</button>
+       </form>
+ 
++      {filter && (
++        <p style={{ margin: '0 0 12px' }}>
++          Filtering by <strong>#{filter}</strong>{' '}
++          <button onClick={() => void applyFilter(null)}>Clear filter</button>
++        </p>
++      )}
++
+       {loading ? (
+         <p>Loading…</p>
+       ) : notes.length === 0 ? (
+@@ -81,6 +110,26 @@ export default function NotesPage() {
+                 <a href={`/note/${note.id}`}>{note.title}</a>
+               </strong>
+               <p style={{ margin: '4px 0' }}>{note.body}</p>
++              {note.tags.length > 0 && (
++                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '4px 0' }}>
++                  {note.tags.map((tag) => (
++                    <button
++                      key={tag}
++                      onClick={() => void applyFilter(tag)}
++                      style={{
++                        border: '1px solid #ccc',
++                        borderRadius: 12,
++                        padding: '2px 8px',
++                        background: '#f5f5f5',
++                        fontSize: 12,
++                        cursor: 'pointer',
++                      }}
++                    >
++                      #{tag}
++                    </button>
++                  ))}
++                </div>
++              )}
+               {note.summary && (
+                 <p style={{ margin: '4px 0', color: '#555' }}>
+                   <em>Summary: {note.summary}</em>
+diff --git a/examples/bench-app-gemstack/pages/note/@id/+Page.tsx b/examples/bench-app-gemstack/pages/note/@id/+Page.tsx
+index 5762453..b59aa27 100644
+--- a/examples/bench-app-gemstack/pages/note/@id/+Page.tsx
++++ b/examples/bench-app-gemstack/pages/note/@id/+Page.tsx
+@@ -35,6 +35,27 @@ export default function NoteDetailPage() {
+         <article>
+           <h1>{note.title}</h1>
+           <p style={{ color: '#888' }}>{new Date(note.createdAt).toLocaleString()}</p>
++          {note.tags.length > 0 && (
++            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '4px 0' }}>
++              {note.tags.map((tag) => (
++                <a
++                  key={tag}
++                  href={`/?tag=${encodeURIComponent(tag)}`}
++                  style={{
++                    border: '1px solid #ccc',
++                    borderRadius: 12,
++                    padding: '2px 8px',
++                    background: '#f5f5f5',
++                    fontSize: 12,
++                    textDecoration: 'none',
++                    color: '#333',
++                  }}
++                >
++                  #{tag}
++                </a>
++              ))}
++            </div>
++          )}
+           <p>{note.body}</p>
+           {note.summary ? (
+             <p style={{ color: '#555' }}>
+diff --git a/examples/bench-app-gemstack/server/api.ts b/examples/bench-app-gemstack/server/api.ts
+index 126ad94..6398700 100644
+--- a/examples/bench-app-gemstack/server/api.ts
++++ b/examples/bench-app-gemstack/server/api.ts
+@@ -1,6 +1,6 @@
+ import { randomUUID } from 'node:crypto'
+ import type { Express, Request, Response, NextFunction } from 'express'
+-import { createNote, deleteNote, findUser, getNote, listNotes, setSummary } from './db.js'
++import { createNote, deleteNote, findUser, getNote, listNotes, normalizeTags, setSummary } from './db.js'
+ import { summarize } from './ai.js'
+ 
+ const COOKIE = 'session'
+@@ -58,19 +58,21 @@ export function registerApi(app: Express): Express {
+     res.status(200).json({ ok: true })
+   })
+ 
+-  // GET /api/notes
+-  app.get('/api/notes', requireAuth, (_req: Request, res: Response) => {
+-    res.status(200).json({ notes: listNotes() })
++  // GET /api/notes  (optional ?tag=<t> filter)
++  app.get('/api/notes', requireAuth, (req: Request, res: Response) => {
++    const tagParam = req.query.tag
++    const tag = typeof tagParam === 'string' ? tagParam : undefined
++    res.status(200).json({ notes: listNotes(tag) })
+   })
+ 
+   // POST /api/notes
+   app.post('/api/notes', requireAuth, (req: Request, res: Response) => {
+-    const { title, body } = (req.body ?? {}) as { title?: string; body?: string }
++    const { title, body, tags } = (req.body ?? {}) as { title?: string; body?: string; tags?: unknown }
+     if (typeof title !== 'string' || typeof body !== 'string') {
+       res.status(400).json({ error: 'title and body are required' })
+       return
+     }
+-    res.status(201).json({ note: createNote(title, body) })
++    res.status(201).json({ note: createNote(title, body, normalizeTags(tags)) })
+   })
+ 
+   // GET /api/notes/:id
+diff --git a/examples/bench-app-gemstack/server/db.ts b/examples/bench-app-gemstack/server/db.ts
+index daff925..2f18f4f 100644
+--- a/examples/bench-app-gemstack/server/db.ts
++++ b/examples/bench-app-gemstack/server/db.ts
+@@ -12,6 +12,7 @@ export interface NoteRow {
+   body: string
+   summary: string | null
+   created_at: string
++  tags: string | null
+ }
+ 
+ /** Public `Note` shape from the HTTP contract. */
+@@ -21,6 +22,32 @@ export interface Note {
+   body: string
+   summary: string | null
+   createdAt: string
++  tags: string[]
++}
++
++function parseTags(raw: string | null): string[] {
++  if (!raw) return []
++  try {
++    const parsed = JSON.parse(raw)
++    return Array.isArray(parsed) ? parsed.filter((t): t is string => typeof t === 'string') : []
++  } catch {
++    return []
++  }
++}
++
++/** Normalize an incoming tags value into a clean string[] (trimmed, non-empty, de-duped). */
++export function normalizeTags(input: unknown): string[] {
++  if (!Array.isArray(input)) return []
++  const seen = new Set<string>()
++  const out: string[] = []
++  for (const t of input) {
++    if (typeof t !== 'string') continue
++    const trimmed = t.trim()
++    if (!trimmed || seen.has(trimmed)) continue
++    seen.add(trimmed)
++    out.push(trimmed)
++  }
++  return out
+ }
+ 
+ function toNote(row: NoteRow): Note {
+@@ -30,6 +57,7 @@ function toNote(row: NoteRow): Note {
+     body: row.body,
+     summary: row.summary,
+     createdAt: row.created_at,
++    tags: parseTags(row.tags),
+   }
+ }
+ 
+@@ -54,10 +82,17 @@ export function db(): Database.Database {
+       title TEXT NOT NULL,
+       body TEXT NOT NULL,
+       summary TEXT,
+-      created_at TEXT NOT NULL
++      created_at TEXT NOT NULL,
++      tags TEXT NOT NULL DEFAULT '[]'
+     );
+   `)
+ 
++  // Additive migration for pre-existing databases that lack the tags column.
++  const cols = conn.prepare(`PRAGMA table_info(notes)`).all() as Array<{ name: string }>
++  if (!cols.some((c) => c.name === 'tags')) {
++    conn.exec(`ALTER TABLE notes ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'`)
++  }
++
+   // Seed the single demo user on first boot.
+   const seeded = conn.prepare('SELECT 1 FROM users WHERE email = ?').get('demo@example.com')
+   if (!seeded) {
+@@ -74,9 +109,11 @@ export function findUser(email: string, password: string): { id: number } | unde
+     .get(email, password) as { id: number } | undefined
+ }
+ 
+-export function listNotes(): Note[] {
++export function listNotes(tag?: string): Note[] {
+   const rows = db().prepare('SELECT * FROM notes ORDER BY id DESC').all() as NoteRow[]
+-  return rows.map(toNote)
++  const notes = rows.map(toNote)
++  if (tag === undefined) return notes
++  return notes.filter((n) => n.tags.includes(tag))
+ }
+ 
+ export function getNote(id: number): Note | undefined {
+@@ -84,11 +121,11 @@ export function getNote(id: number): Note | undefined {
+   return row ? toNote(row) : undefined
+ }
+ 
+-export function createNote(title: string, body: string): Note {
++export function createNote(title: string, body: string, tags: string[] = []): Note {
+   const createdAt = new Date().toISOString()
+   const info = db()
+-    .prepare('INSERT INTO notes (title, body, summary, created_at) VALUES (?, ?, NULL, ?)')
+-    .run(title, body, createdAt)
++    .prepare('INSERT INTO notes (title, body, summary, created_at, tags) VALUES (?, ?, NULL, ?, ?)')
++    .run(title, body, createdAt, JSON.stringify(normalizeTags(tags)))
+   return getNote(Number(info.lastInsertRowid))!
+ }
+ 
