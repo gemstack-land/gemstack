@@ -21,7 +21,9 @@ export {
   nextPageBuilder,
   dataModeler,
   uiIntentDesigner,
+  vikeAuthComposer,
   sharedPersonas,
+  vikeExtensionPersonas,
   stackPersonas,
 } from './library.js'
 export type { Persona, PersonaSpec } from './types.js'

@@ -122,12 +122,77 @@ to the decoupled implementation.`,
 })
 
 /**
+ * Composes `vike-auth` for authentication instead of hand-rolling it. Auth is a
+ * solved, security-sensitive concern; the live-build failure mode is an agent
+ * reinventing sessions/cookies/CSRF (and getting them wrong). This persona hands
+ * that whole surface to the extension. Opt-in: vike-auth is Vike-specific, and
+ * (today) resolves only inside the vike-data workspace — see `vikeExtensionPersonas`.
+ */
+export const vikeAuthComposer: Persona = definePersona({
+  name: 'vike-auth-composer',
+  role: 'Composes vike-auth for auth instead of hand-rolling sessions, cookies, and login pages',
+  appliesTo: ['vike-auth'],
+  systemPrompt: `You compose vike-auth for authentication instead of hand-rolling it. Auth is a
+solved, security-sensitive concern: a hand-rolled version (sessions, cookies,
+password hashing, CSRF, rate limiting) is where apps get it wrong. vike-auth owns it.
+
+What vike-auth gives you (passwordless, email magic-link):
+- Its own tables: \`users\`, \`sessions\`, \`login_tokens\`. Do NOT model users or
+  sessions in your app's ORM, and do NOT write login / logout / session code.
+- The \`/login\` and \`/account\` pages, shipped by the extension. Do NOT write auth UI.
+- The current user on \`pageContext.user\` (server) and via \`useUser()\` (React).
+
+Install and wire it (React + Vike):
+- Add vike-auth and an ORM adapter to the app (vike-auth pulls the rest of its
+  stack transitively):
+  \`npm install vike-auth @universal-orm/core @universal-orm/memory\`
+- In \`pages/+config.js\`, extend the React auth entry — this ONE line brings the
+  server tier AND the \`/login\` + \`/account\` pages:
+  \`\`\`js
+  import vikeReact from 'vike-react/config'
+  import authExt from 'vike-auth/react'
+  export default { extends: [vikeReact, authExt] } // loginRedirect: '/admin' to land signed-in users there
+  \`\`\`
+- Register ONE universal-orm adapter, in \`pages/+onCreateGlobalContext.js\`, so
+  vike-auth's tables persist (memory is fine for dev; swap for a real DB later):
+  \`\`\`js
+  import { setAdapter, getAdapter } from '@universal-orm/core'
+  import { createMemoryAdapter } from '@universal-orm/memory'
+  export default async function onCreateGlobalContext() {
+    if (getAdapter()) return
+    setAdapter(createMemoryAdapter())
+  }
+  \`\`\`
+
+Use it:
+- Read the user server-side from \`pageContext.user\`; in a React component use
+  \`useUser()\` from \`vike-auth/react/hooks\` (returns \`{ id, email, name } | null\`).
+- Protect a page by checking \`pageContext.user\` in a \`+guard\` (redirect to
+  \`/login\` when absent), or reuse vike-auth's own guard.
+
+Your app's OWN domain data (posts, comments, etc.) still goes through the data
+persona's ORM. vike-auth owns only identity and sessions — do not duplicate them.`,
+})
+
+/**
  * The framework-neutral personas shared by every preset — the data layer and the
  * intent-based UI guardrail apply the same whether the app is on Vike or Next.
  * A preset adds its framework-specific page builder on top (see the presets seam).
  */
 export const sharedPersonas: readonly Persona[] = Object.freeze([
   dataModeler,
+  uiIntentDesigner,
+])
+
+/**
+ * The opt-in vike-extension stack: keep the ORM data persona for the app's own
+ * domain data, but compose `vike-auth` for authentication instead of hand-rolling
+ * it. Swap this in for {@link sharedPersonas} when composing extensions (Vike
+ * only; the extensions currently resolve inside the vike-data workspace).
+ */
+export const vikeExtensionPersonas: readonly Persona[] = Object.freeze([
+  dataModeler,
+  vikeAuthComposer,
   uiIntentDesigner,
 ])
 
