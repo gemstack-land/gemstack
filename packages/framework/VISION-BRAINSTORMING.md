@@ -1,6 +1,8 @@
 ## UI
 
-- Toggles
+> [!WARN] This includes brainstorming (the long-term vision). **Most of this is out-of-scope for the MVP:** we can only implement the parts that are relevant for the MVP.
+
+- Checkboxes
   - [] Autopilot (whether to auto-accept)
   - [] Technical control (expose technical details, e.g. <Choices> for tech stack)
   - [] Eco (fine-grain control over system prompt to save resources)
@@ -13,7 +15,7 @@
     - This just adds one line to the system prompt: `Context: [list-of-dirs]`
     - AI always has *access* to all repos (doesn't mean it should actually read all repos, we therefore need a context selector)
       - When adding repos: "Do you trust this repository? ("You must trust it, otherwise high risk of [prompt injection](link-that-explains-the-problem).")
-- Three sidebars:
+- Sidebars:
   1. First sidebar (on the left):
      - Three sections: `Overview`, `Projects`, `Queue`
        - `Projects`: shows the list of all projects where The Framework is activated
