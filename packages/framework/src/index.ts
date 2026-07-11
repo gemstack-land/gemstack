@@ -131,6 +131,18 @@ export {
   type ProjectFs,
   type GitRunner,
 } from './project.js'
+export {
+  projectId,
+  registryPath,
+  nodeRegistryFs,
+  listProjects,
+  addProject,
+  removeProject,
+  REGISTRY_DIR,
+  REGISTRY_FILE,
+  type ProjectRecord,
+  type RegistryFs,
+} from './registry.js'
 export { runCli, parseArgs, buildDeployTarget, workspaceSummary, autoSelectPreset, type CliIO, type CliOptions } from './cli.js'
 export {
   metaSelect,
