@@ -138,7 +138,6 @@ export {
   listProjects,
   addProject,
   removeProject,
-  REGISTRY_DIR,
   REGISTRY_FILE,
   type ProjectRecord,
   type RegistryFs,
