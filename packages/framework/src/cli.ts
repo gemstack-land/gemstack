@@ -227,7 +227,7 @@ export interface CliOptions {
   eco: Required<EcoOptions>
   /** `--context <dir>` (repeatable): in-context directories added as one `Context:` line (#439). */
   context: string[]
-  /** `--bootstrap`: bootstrap mode (#297/#448) — a new project from an empty dir; stop for a plan first. */
+  /** `--bootstrap`: bootstrap mode (#297/#457) — a new project from an empty dir; stop for a plan first. */
   bootstrap: boolean
   buildEvent?: string | undefined
   maxPasses?: number

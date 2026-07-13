@@ -54,6 +54,25 @@ test('runFramework drives the whole flow through the driver, offline, to product
   assert.equal(events.at(-1)!.kind, 'end')
 })
 
+test('runFramework reinforces only the architect turn in bootstrap mode (#297/#457)', async () => {
+  const events: FrameworkEvent[] = []
+  await runFramework({
+    intent: FAKE_INTENT,
+    driver: fakeDriver(),
+    cwd: '/tmp/ws',
+    signals: FAKE_SIGNALS,
+    bootstrap: true,
+    onEvent: e => events.push(e),
+  })
+  const prompts = events.flatMap(e => (e.kind === 'driver' && e.event.type === 'start' ? [e.event.prompt] : []))
+  const architect = prompts.find(p => p.includes('You are the architect'))
+  assert.ok(architect, 'an architect prompt was sent')
+  assert.ok(architect!.includes('brand-new project')) // BOOTSTRAP_ARCHITECT_NOTE prepended
+  // The note is scoped to the architect: build/scaffold turns keep the raw intent so
+  // they actually build after approval, not re-analyze.
+  assert.equal(prompts.filter(p => p.includes('brand-new project')).length, 1)
+})
+
 test('runFramework surfaces the wrapped agent real session id via session-update', async () => {
   const events: FrameworkEvent[] = []
   await runFramework({

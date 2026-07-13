@@ -4,10 +4,11 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  BOOTSTRAP_PREAMBLE,
+  BOOTSTRAP_ARCHITECT_NOTE,
   loadUserSystemPrompt,
   renderSystemPrompt,
   systemPromptBlock,
+  wrapBootstrapPrompt,
   SYSTEM_PROMPT_FILE,
   SYSTEM_PROMPT_TEMPLATE,
 } from './system-prompt.js'
@@ -99,19 +100,26 @@ test('systemPromptBlock threads tf through to the template', () => {
   assert.ok(block.includes('postpone a deep refactor'))
 })
 
-test('systemPromptBlock prepends the bootstrap preamble above the built-in prompt (#297/#448)', () => {
-  const off = systemPromptBlock()
-  assert.ok(!off.includes(BOOTSTRAP_PREAMBLE)) // default off: no preamble
-  const on = systemPromptBlock({ bootstrap: true })
-  assert.ok(on.startsWith(BOOTSTRAP_PREAMBLE)) // preamble first
-  assert.ok(on.includes('# System prompt')) // then the byte-identical #326 template
-  assert.ok(on.indexOf(BOOTSTRAP_PREAMBLE) < on.indexOf('# System prompt')) // preamble outranks it
+test('wrapBootstrapPrompt rewords the intent into instructions and keeps the request (#297/#457)', () => {
+  const wrapped = wrapBootstrapPrompt('  Build an instagram clone  ')
+  assert.ok(wrapped.includes('brand-new project')) // frames the empty-dir situation
+  assert.ok(wrapped.includes('showMarkdown()')) // Rom's action: analysis via showMarkdown
+  assert.ok(/await my approval/i.test(wrapped)) // stop and await before code
+  assert.ok(wrapped.trimEnd().endsWith('Build an instagram clone')) // original request rides at the end, trimmed
 })
 
-test('systemPromptBlock keeps the bootstrap preamble after the Context line (#439/#448)', () => {
-  const block = systemPromptBlock({ bootstrap: true, context: ['/work/api'] })
-  assert.ok(block.startsWith('Context: /work/api')) // context frames everything
-  assert.ok(block.indexOf('Context: /work/api') < block.indexOf(BOOTSTRAP_PREAMBLE))
+test('BOOTSTRAP_ARCHITECT_NOTE reinforces plan-before-code without an await verb (#297/#457)', () => {
+  // The build path's architect turn answers with JSON that the plan-approval gate awaits,
+  // so the note must not itself demand showMarkdown/await (which would fight the JSON shape).
+  assert.ok(BOOTSTRAP_ARCHITECT_NOTE.includes('brand-new project'))
+  assert.ok(!BOOTSTRAP_ARCHITECT_NOTE.includes('showMarkdown'))
+})
+
+test('systemPromptBlock no longer carries a bootstrap preamble (#297/#457)', () => {
+  // Bootstrap moved from the system channel to the wrapped user prompt.
+  const block = systemPromptBlock({ context: ['/work/api'] })
+  assert.ok(block.startsWith('Context: /work/api'))
+  assert.ok(!block.includes('brand-new project'))
 })
 
 test('eco.autoPlanning drops only the Large scope section (#314)', () => {

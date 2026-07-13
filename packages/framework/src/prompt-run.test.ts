@@ -59,6 +59,25 @@ test('runPrompt surfaces the system prompt (#343); the user prompt rides a drive
   if (start.event.type === 'start') assert.match(start.event.prompt, /refactor the auth flow/)
 })
 
+test('runPrompt wraps the user prompt in bootstrap mode, not the system prompt (#297/#457)', async () => {
+  const events: FrameworkEvent[] = []
+  const driver = new FakeDriver({ turns: [{ text: 'here is my analysis' }] })
+  await runPrompt({ prompt: 'Build an instagram clone', driver, cwd: '/ws', bootstrap: true, onEvent: e => events.push(e) })
+
+  // The bootstrap framing rides the user prompt (Rom's steer), not the system channel.
+  const start = events.find(
+    (e): e is Extract<FrameworkEvent, { kind: 'driver' }> => e.kind === 'driver' && e.event.type === 'start',
+  )
+  assert.ok(start && start.event.type === 'start')
+  if (start.event.type === 'start') {
+    assert.match(start.event.prompt, /brand-new project/)
+    assert.match(start.event.prompt, /showMarkdown\(\)/)
+    assert.match(start.event.prompt, /Build an instagram clone/) // original request preserved
+  }
+  const sys = events.find(e => e.kind === 'system-prompt') as { text: string } | undefined
+  assert.ok(sys && !sys.text.includes('brand-new project')) // system channel unchanged
+})
+
 test('runPrompt honors eco flags in the emitted system prompt (#314)', async () => {
   const events: FrameworkEvent[] = []
   const driver = new FakeDriver({ turns: [{ text: 'done' }] })

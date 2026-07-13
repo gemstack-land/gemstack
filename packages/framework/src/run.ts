@@ -37,12 +37,12 @@ import {
 import { snapshotWorkspace } from './sandbox.js'
 import type { Driver, DriverEvent, DriverSession } from './driver/index.js'
 import { memoryFraming, type LoadedMemory } from './memory.js'
-import { systemPromptBlock, type EcoOptions, type TfContext } from './system-prompt.js'
+import { systemPromptBlock, BOOTSTRAP_ARCHITECT_NOTE, type EcoOptions, type TfContext } from './system-prompt.js'
 import { AWAIT_PROTOCOL, CONFIRM_APPROVED, CONFIRM_DECLINED, PLAN_DECLINED_MESSAGE, isDeclinedConfirmation, parseAwaitGate, parseMarkdownViews, type ParsedAwaitGate } from './turn-gate.js'
 // Value import from todo-loop.js is a benign cycle: todo-loop.js only calls
 // run.js's hoisted function declarations (requestChoices / resolveAwaitGate).
 import { runTodoLoop, type TodoLoopResult } from './todo-loop.js'
-import { continueAfterChoice, decideDeploy, deployWith, domainLoopChecklist, driverArchitect, driverBuild, driverChecklist, driverImprove, driverLoopPrompts, reArchitect, type AwaitResolver } from './steps.js'
+import { architectPrompt, continueAfterChoice, decideDeploy, deployWith, domainLoopChecklist, driverArchitect, driverBuild, driverChecklist, driverImprove, driverLoopPrompts, reArchitect, type AwaitResolver } from './steps.js'
 import { hasSessionIdPlaceholder, OPEN_LOOP_MODES, pickedIds, resolveSessionLink, type ChoicePick, type ChoiceRequest, type FrameworkEvent } from './events.js'
 import { UsageMeter } from './usage.js'
 
@@ -126,8 +126,9 @@ export interface RunFrameworkOptions {
   /** In-context directories (#439): added as one `Context:` line to the system prompt. */
   context?: readonly string[]
   /**
-   * Bootstrap mode (#297/#448): a brand-new project from an empty directory. Prepends a
-   * forceful preamble so the first turn stops for a plan instead of charging ahead. Default off.
+   * Bootstrap mode (#297/#457): a brand-new project from an empty directory. Rewords the
+   * architect's first turn to settle the plan before any code (the plan-approval gate then
+   * awaits it), instead of charging ahead. Default off.
    */
   bootstrap?: boolean
   /**
@@ -350,7 +351,7 @@ export async function runFramework(opts: RunFrameworkOptions): Promise<RunFramew
     prompt: opts.intent,
     params: { autopilot: opts.modes?.includes('autopilot') ?? false, ...(opts.eco ? { eco: opts.eco } : {}) },
   }
-  const promptBlock = systemPromptBlock({ antiLazyPill: opts.antiLazyPill, user: opts.systemPrompt, tf, context: opts.context, bootstrap: opts.bootstrap })
+  const promptBlock = systemPromptBlock({ antiLazyPill: opts.antiLazyPill, user: opts.systemPrompt, tf, context: opts.context })
   // The await protocol (#337) concretizes the pill's showChoices()/AWAIT macros into a
   // signal the turn-boundary gate can detect, so it rides along with the pill.
   const system = [
@@ -544,10 +545,16 @@ export async function runFramework(opts: RunFrameworkOptions): Promise<RunFramew
         // unclear-scope flow): resolve it through the same gates instead of
         // letting the stub-plan fallback swallow the question. Only when someone
         // can answer, so a headless run stays byte-identical.
-        architect: planApprovalGate(driverArchitect(session, architectAwait), session, {
-          ...gateDeps,
-          ...architectAwait,
-        }),
+        architect: planApprovalGate(
+          driverArchitect(session, {
+            ...architectAwait,
+            // Bootstrap mode (#297/#457): reword the architect's first turn to insist the
+            // plan is settled before any code — the plan-approval gate below then awaits it.
+            ...(opts.bootstrap ? { prompt: (intent: string) => `${BOOTSTRAP_ARCHITECT_NOTE}\n\n${architectPrompt(intent)}` } : {}),
+          }),
+          session,
+          { ...gateDeps, ...architectAwait },
+        ),
         build: agentAwaitGate(driverBuild(session, workspaceOpt), session, gateDeps),
         checklist,
         improve: driverImprove(session, workspaceOpt),

@@ -60,20 +60,40 @@ Before starting to write code, measure "variability":
 \${{tf.prompt}}`
 
 /**
- * Bootstrap mode's forceful preamble (#297/#448). The built-in #326 prompt already
- * carries the "Unclear scope" / "Large scope" rules, but appended to Claude Code's own
- * system prompt those lose to its default "be decisive, don't block the user" instinct —
- * so a fresh-from-empty-dir build charges ahead instead of stopping for a plan (measured).
- * This preamble states the override explicitly and forbids writing code before approval,
- * which flips the behaviour without touching Rom's template. Prepended above the #326
- * prompt only when bootstrap mode is on.
+ * Bootstrap mode (#297/#457): reword the user's prompt into instructions rather than
+ * injecting a system-prompt preamble. Rom's steer (#297): treat Claude Code as a black
+ * box and wrap the user prompt — instructions carried in the prompt itself outweigh the
+ * "contextual" system-prompt text the agent is tempted to skip. The original request rides
+ * at the end unchanged; the framing tells the agent to analyze it and stop for approval
+ * before writing any code (a brand-new project from an empty directory is exactly where
+ * charging ahead is most costly). Used on the direct-prompt path (#331); the build path's
+ * architect turn gets the lighter {@link BOOTSTRAP_ARCHITECT_NOTE} instead.
  */
-export const BOOTSTRAP_PREAMBLE = `# Bootstrap mode
+export function wrapBootstrapPrompt(userPrompt: string): string {
+  return [
+    'This is a brand-new project, starting from an empty directory.',
+    '',
+    'Before writing, scaffolding, or editing any file, or running any build or install command, treat my request below as something to analyze first, not a green light to start building:',
+    '',
+    '- Work out what I actually want: the plausible interpretations (sorted most-likely first), the key decisions (stack, scope, unknowns), and any open questions.',
+    '- Show me that analysis and the plan you propose with showMarkdown(), then stop and await my approval.',
+    '- Do not write any code until I have approved a plan.',
+    '',
+    'My request:',
+    '',
+    userPrompt.trim(),
+  ].join('\n')
+}
 
-You are starting a brand-new project from an empty directory. This takes precedence over any default tendency to act decisively or to start building right away:
-
-- Do NOT write, scaffold, or edit any file, and do NOT run build or install commands, until the user has approved a plan.
-- Your first reply MUST be either a list of interpretations sorted by plausibility (when the scope is unclear) or a plan the user can approve (when the scope is large), then stop and await the user's answer.`
+/**
+ * Bootstrap reinforcement for the build path's architect turn (#297/#457). The architect
+ * already answers with a plan JSON that the plan-approval gate (#304) shows and awaits, so
+ * here bootstrap only needs to insist the plan is right before any code is written; the full
+ * analyze / showMarkdown / await wording lives in {@link wrapBootstrapPrompt} for the
+ * direct-prompt path. Prepended to the architect prompt only when bootstrap mode is on.
+ */
+export const BOOTSTRAP_ARCHITECT_NOTE =
+  'This is a brand-new project, starting from an empty directory. Get the plan right before any code is written: it is shown to the user for approval first, so do not scaffold or build anything yet.'
 
 /**
  * Eco fine-grained control (#314): each flag drops one whole `##` section from the
@@ -202,12 +222,6 @@ export interface SystemPromptOptions {
    * the block. Empty/absent adds nothing.
    */
   context?: readonly string[] | undefined
-  /**
-   * Bootstrap mode (#297/#448): starting a brand-new project from an empty directory.
-   * Prepends the forceful {@link BOOTSTRAP_PREAMBLE} above the built-in prompt so the
-   * first turn stops for a plan instead of charging ahead. Default off.
-   */
-  bootstrap?: boolean | undefined
 }
 
 /**
@@ -224,9 +238,6 @@ export function systemPromptBlock(opts: SystemPromptOptions = {}): string {
   // alone under `--vanilla`, where there is no built-in prompt to frame).
   const context = opts.context?.map(d => d.trim()).filter(Boolean)
   if (context && context.length) parts.push(`Context: ${context.join(', ')}`)
-  // Bootstrap's override sits above the #326 prompt so it frames (and outranks) its
-  // "Unclear scope" / "Large scope" rules.
-  if (opts.bootstrap) parts.push(BOOTSTRAP_PREAMBLE)
   if (opts.antiLazyPill !== false) parts.push(renderSystemPrompt(opts.tf).system)
   const user = opts.user?.trim()
   if (user) parts.push(user)
