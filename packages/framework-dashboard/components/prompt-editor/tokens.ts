@@ -99,9 +99,11 @@ export const Token = Node.create({
       const spec = specForText(match[0])
       return { kind: spec.kind, label: spec.label, text: spec.text }
     }
+    // No capture groups: nodeInputRule replaces only the captured sub-match when one exists,
+    // which would leave the surrounding `<` `>` behind. Match the whole token instead.
     return [
-      nodeInputRule({ find: /<([A-Za-z][A-Za-z0-9_]*)>$/, type: this.type, getAttributes: toAttrs }),
-      nodeInputRule({ find: /(show[A-Za-z]+\(\))$/, type: this.type, getAttributes: toAttrs }),
+      nodeInputRule({ find: /<[A-Za-z][A-Za-z0-9_]*>$/, type: this.type, getAttributes: toAttrs }),
+      nodeInputRule({ find: /show[A-Za-z]+\(\)$/, type: this.type, getAttributes: toAttrs }),
     ]
   },
 
