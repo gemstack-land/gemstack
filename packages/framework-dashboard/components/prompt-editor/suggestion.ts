@@ -34,10 +34,19 @@ function place(el: HTMLElement, rect: DOMRect | null): void {
   }
 }
 
+type RenderProps = {
+  items: SuggestionItem[]
+  command: (item: SuggestionItem) => void
+  clientRect?: (() => DOMRect | null) | null
+}
+
 function makeRender() {
   let el: HTMLDivElement | null = null
   let root: Root | null = null
   let listRef: SuggestionListRef | null = null
+  // The latest caret-rect getter, re-read on scroll/resize so the menu tracks the caret
+  // instead of staying pinned where it first opened.
+  let getRect: (() => DOMRect | null) | null = null
 
   const draw = (items: SuggestionItem[], command: (item: SuggestionItem) => void): void => {
     root?.render(
@@ -51,18 +60,27 @@ function makeRender() {
     )
   }
 
+  const reposition = (): void => {
+    if (el) place(el, getRect?.() ?? null)
+  }
+
   return {
-    onStart(props: { items: SuggestionItem[]; command: (item: SuggestionItem) => void; clientRect?: (() => DOMRect | null) | null }) {
+    onStart(props: RenderProps) {
       el = document.createElement('div')
       el.style.position = 'fixed'
       el.style.zIndex = '50'
       document.body.appendChild(el)
       root = createRoot(el)
-      place(el, props.clientRect?.() ?? null)
+      getRect = props.clientRect ?? null
+      reposition()
       draw(props.items, props.command)
+      // Capture-phase scroll catches the editor's own scroll container, not just the window.
+      window.addEventListener('scroll', reposition, true)
+      window.addEventListener('resize', reposition)
     },
-    onUpdate(props: { items: SuggestionItem[]; command: (item: SuggestionItem) => void; clientRect?: (() => DOMRect | null) | null }) {
-      if (el) place(el, props.clientRect?.() ?? null)
+    onUpdate(props: RenderProps) {
+      getRect = props.clientRect ?? null
+      reposition()
       draw(props.items, props.command)
     },
     onKeyDown(props: { event: KeyboardEvent }) {
@@ -70,11 +88,14 @@ function makeRender() {
       return listRef?.onKeyDown(props.event) ?? false
     },
     onExit() {
+      window.removeEventListener('scroll', reposition, true)
+      window.removeEventListener('resize', reposition)
       root?.unmount()
       el?.remove()
       root = null
       el = null
       listRef = null
+      getRect = null
     },
   }
 }
