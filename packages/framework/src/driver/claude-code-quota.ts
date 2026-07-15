@@ -122,11 +122,13 @@ export function readClaudeQuota(opts: ReadClaudeQuotaOptions = {}): Promise<Driv
     }
     opts.signal?.addEventListener('abort', onAbort)
 
+    // Deliberately not unref'd: this timer is the only thing guaranteeing the
+    // promise settles, and an unref'd one never fires once the loop goes idle,
+    // leaving the caller awaiting forever. `settle` clears it either way.
     const timer = setTimeout(() => {
       child.kill('SIGTERM')
       settle({ available: false, reason: 'timeout' })
     }, opts.timeoutMs ?? READ_TIMEOUT_MS)
-    timer.unref?.()
 
     child.stdout?.on('data', (chunk: Buffer | string) => chunks.push(String(chunk)))
     // ENOENT lands here rather than as a non-zero exit.
