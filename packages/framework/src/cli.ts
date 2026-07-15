@@ -1006,7 +1006,7 @@ export async function runCli(argv: string[], io: CliIO = defaultIO): Promise<num
 
   // `framework research [what]` (#331) and `framework prompt <text>` (#353): the
   // direct prompt path — run one prompt through runPrompt, which honors its gates
-  // (#337/#339) but skips the scope -> architect -> build scaffolding entirely.
+  // (#337/#339) but skips the scope -> build scaffolding entirely.
   // Research renders its preset template around the "what"; prompt runs the text
   // verbatim (it may already BE an edited preset, so it must not be re-rendered).
   // Shares all the wiring above (dashboard, store, control channel, budget).

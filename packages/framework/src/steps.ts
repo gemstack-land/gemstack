@@ -394,30 +394,3 @@ export function deployWith(
   }
 }
 
-function coerceStrings(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  return value.filter((v): v is string => typeof v === 'string' && v.trim() !== '').map(v => v.trim())
-}
-
-const FENCE = /```(?:[a-zA-Z0-9]*)\n([\s\S]*?)```/g
-
-/** Extract the last JSON object from text: last fenced block, else a trailing `{...}`. */
-function lastJsonObject(text: string): Record<string, unknown> | undefined {
-  if (!text) return undefined
-  const candidates: string[] = []
-  for (const m of text.matchAll(FENCE)) candidates.push(m[1]!)
-  const open = text.lastIndexOf('{')
-  const close = text.lastIndexOf('}')
-  if (open !== -1 && close > open) candidates.push(text.slice(open, close + 1))
-  for (let i = candidates.length - 1; i >= 0; i--) {
-    try {
-      const parsed = JSON.parse(candidates[i]!.trim())
-      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-        return parsed as Record<string, unknown>
-      }
-    } catch {
-      // try the next candidate
-    }
-  }
-  return undefined
-}
