@@ -22,10 +22,10 @@ import {
   type Verdict,
 } from '@gemstack/ai-autopilot'
 import { snapshotWorkspace } from './sandbox.js'
-import { CONSUMPTION_LIMIT_LABEL, type ConsumptionWindow } from './consumption.js'
+import { type ConsumptionWindow } from './consumption.js'
 import type { Driver, DriverSession } from './driver/index.js'
 import { composeRunSystem, type EcoOptions, type TfContext } from './system-prompt.js'
-import { createDriverEventHandler, emitSessionStart } from './run-telemetry.js'
+import { createRunControls, emitSessionStart, endStopDetail } from './run-telemetry.js'
 import { AWAIT_PROTOCOL, CONFIRM_APPROVED, CONFIRM_DECLINED, MAX_AWAIT_ROUNDS, PLAN_DECLINED_MESSAGE, continuationPrompt, createTurnSignalEmitter, isDeclinedConfirmation, parseAwaitGate, type ParsedAwaitGate } from './turn-gate.js'
 // Value import from todo-loop.js is a benign cycle: todo-loop.js only calls
 // run.js's hoisted function declarations (requestChoices / resolveAwaitGate).
@@ -309,32 +309,16 @@ export async function runFramework(opts: RunFrameworkOptions): Promise<RunFramew
     emit({ kind: 'modes', all: OPEN_LOOP_MODES, active: opts.modes ?? [] })
   }
 
-  // Compose the caller's signal with a budget-triggered abort (#322) so the run can
-  // stop *itself* once it has spent too much, without the caller having to watch
-  // usage. Everything downstream aborts on `runSignal`; only the budget path (or a
-  // caller abort) trips it. With no caller signal this is just the budget signal.
-  const budgetController = new AbortController()
-  // A declined plan (#358) also stops the run cleanly, like the budget cap: nothing
-  // downstream should review or improve work the user just declined.
-  const declineController = new AbortController()
-  // A consumption limit (#529) is the third clean stop: the account's quota, not
-  // this run's spend, is what ran out.
-  const consumptionController = new AbortController()
-  const runSignal = AbortSignal.any([
-    ...(opts.signal ? [opts.signal] : []),
-    budgetController.signal,
-    declineController.signal,
-    consumptionController.signal,
-  ])
-
-  const { onDriverEvent, consumptionTrip } = createDriverEventHandler({
-    emit,
-    sessionLink: opts.sessionLink,
-    budgetUsd: opts.budgetUsd,
-    consumptionGate: opts.consumptionGate,
-    budgetController,
-    consumptionController,
-  })
+  // The run's abort plumbing and driver-event sink: the caller's signal composed with
+  // the budget (#322), consumption (#529), and plan-decline (#358) self-stops.
+  const { runSignal, onDriverEvent, consumptionTrip, budgetController, consumptionController, declineController } =
+    createRunControls({
+      emit,
+      ...(opts.signal ? { signal: opts.signal } : {}),
+      ...(opts.sessionLink ? { sessionLink: opts.sessionLink } : {}),
+      ...(opts.budgetUsd != null ? { budgetUsd: opts.budgetUsd } : {}),
+      ...(opts.consumptionGate ? { consumptionGate: opts.consumptionGate } : {}),
+    })
 
   // 2. One driver session for the whole run; each prompt is a fresh invocation.
   const session: DriverSession = await opts.driver.start({
@@ -460,27 +444,16 @@ export async function runFramework(opts: RunFrameworkOptions): Promise<RunFramew
     emit({ kind: 'end', ok: true })
     return { result, detection, events, ...(preview ? { preview } : {}), ...(loop ? { loop } : {}), ...(todo ? { todo } : {}) }
   } catch (err) {
-    // A user interrupt (the dashboard Stop button / Ctrl+C) or a budget cap (#322)
-    // is a clean stop, not a failure — mark it so surfaces show "stopped". Budget is
-    // its own signal, so it trips when the caller's signal did not.
-    const budgetStopped = budgetController.signal.aborted && opts.signal?.aborted !== true
-    const declined = declineController.signal.aborted
-    const paused = consumptionController.signal.aborted && opts.signal?.aborted !== true
-    const stopped =
-      opts.signal?.aborted === true || budgetController.signal.aborted || declined || consumptionController.signal.aborted
-    // Leave word to pick this up again (#529). Written here rather than at the
-    // trip because the note is file I/O and the trip is a sync event handler; a
-    // fire-and-forget write could lose the race with the run unwinding.
-    const resumeNote = paused ? await leaveResumeNote(opts.cwd, events, emit) : undefined
-    const detail = declined
-      ? 'plan declined'
-      : budgetStopped
-        ? `budget reached ($${opts.budgetUsd})`
-        : paused
-          ? `${CONSUMPTION_LIMIT_LABEL[consumptionTrip() ?? 'session']} consumption limit reached${resumeNote ? `; will resume from ${resumeNote}` : ''}`
-          : err instanceof Error
-            ? err.message
-            : String(err)
+    const { stopped, detail } = await endStopDetail({
+      err,
+      ...(opts.signal ? { signal: opts.signal } : {}),
+      budgetController,
+      consumptionController,
+      declineController,
+      consumptionTrip,
+      ...(opts.budgetUsd != null ? { budgetUsd: opts.budgetUsd } : {}),
+      leaveResumeNote: () => leaveResumeNote(opts.cwd, events, emit),
+    })
     emit({ kind: 'end', ok: false, ...(stopped ? { stopped: true } : {}), detail })
     throw err
   } finally {
