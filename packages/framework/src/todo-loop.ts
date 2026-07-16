@@ -249,7 +249,10 @@ export async function runTodoLoop(opts: TodoLoopOptions): Promise<TodoLoopResult
     }
 
     emit({ kind: 'log', message: `Backlog item ${completed + 1}: ${preview}` })
-    await promptItem(session, backlog.name, gateDeps)
+    // Complete exactly the first open entry and check it off, honoring await gates.
+    // A declined plan (#358) ends the item turn; the loop's stall check takes it from there.
+    const prompt = `Open \`${backlog.name}\` at the workspace root and work on the FIRST open entry only. Complete it fully and verify your work. Then update \`${backlog.name}\`: check the entry off (or remove it). Do not start any other entry.`
+    await runAwaitRounds({ session, prompt, ...gateDeps })
     completed++
 
     // Progress check: the item turn must have retired the entry it was given
@@ -284,25 +287,3 @@ export async function runTodoLoop(opts: TodoLoopOptions): Promise<TodoLoopResult
   return { completed, reason: 'max-items', ...(file ? { file } : {}) }
 }
 
-/** One backlog item's turn: complete the first open entry, honoring await gates. */
-async function promptItem(
-  session: DriverSession,
-  fileName: string,
-  deps: {
-    requestChoice?: ((req: ChoiceRequest) => Promise<ChoicePick>) | undefined
-    emit: (event: FrameworkEvent) => void
-    signal?: AbortSignal | undefined
-    emitTurnSignals: (text: string) => void
-  },
-): Promise<void> {
-  const prompt = `Open \`${fileName}\` at the workspace root and work on the FIRST open entry only. Complete it fully and verify your work. Then update \`${fileName}\`: check the entry off (or remove it). Do not start any other entry.`
-  // A declined plan (#358) ends the item turn; the loop's stall check takes it from there.
-  await runAwaitRounds({
-    session,
-    prompt,
-    emitTurnSignals: deps.emitTurnSignals,
-    requestChoice: deps.requestChoice,
-    emit: deps.emit,
-    signal: deps.signal,
-  })
-}
