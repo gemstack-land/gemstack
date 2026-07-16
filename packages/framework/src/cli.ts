@@ -21,6 +21,7 @@ import { randomUUID } from 'node:crypto'
 import { formatFrameworkEvent, CLAUDE_CODE_SESSION_LINK, type ChoicePick, type ChoiceRequest, type FrameworkEvent } from './events.js'
 import {
   runFramework,
+  type AppPreview,
   type DeployDecision,
   type RunFrameworkOptions,
   type RunFrameworkResult,
@@ -678,6 +679,74 @@ export async function resolveDomainPreset(
   return { preset }
 }
 
+/** The run-scoped state {@link settleRun} needs to close out either run path. */
+interface RunEpilogue {
+  io: CliIO
+  dashboard: Dashboard | undefined
+  store: RunStore | undefined
+  control: ControlWatcher | undefined
+  guard: { stop: () => void } | undefined
+  publisher: RelayPublisher | undefined
+  clearInterrupt: () => void
+  maybeFireOnBeforeMergeable: () => Promise<void>
+  /** True once the run stopped cleanly (interrupt / budget cap) rather than failed. */
+  isStopped: () => boolean
+  /** How a real failure is labelled: "run", "research", or "prompt run". */
+  failLabel: string
+}
+
+/**
+ * Run one engine (a build or a direct prompt) and settle it identically: on success print its
+ * line and keep the dashboard (and any app preview) up until Ctrl+C; on a clean stop (interrupt
+ * / budget cap #322) report it and stay up; on a real failure report it and close. The teardown
+ * — flush the store, close the control channel + consumption guard, flush the relay — runs
+ * either way. Returns the exit code (0 on success or a clean stop, 1 on a failure). Shared by
+ * both run paths so their epilogues cannot drift.
+ */
+async function settleRun(
+  ctx: RunEpilogue,
+  run: () => Promise<{ successLine: string; preview?: AppPreview }>,
+): Promise<number> {
+  const { io, dashboard } = ctx
+  try {
+    const { successLine, preview } = await run()
+    // Run settled: hand Ctrl+C back to the post-run dashboard/app wait below.
+    ctx.clearInterrupt()
+    io.out(successLine)
+    if (preview) io.out(`\n▶ Your app is running at ${preview.url} — open it in a browser.`)
+    await ctx.store?.close() // flush the event log; best-effort
+    await ctx.maybeFireOnBeforeMergeable()
+    // Stay up while the dashboard and/or the app are live, then tear both down.
+    if (dashboard || preview) {
+      if (dashboard) io.out(`\nDashboard still live at ${dashboard.url}. Press Ctrl+C to exit.`)
+      else io.out(`\nPress Ctrl+C to stop the app.`)
+      await waitForInterrupt()
+      if (preview) await preview.stop()
+      await dashboard?.close()
+    }
+    return 0
+  } catch (err) {
+    ctx.clearInterrupt()
+    await ctx.store?.close()
+    // A clean stop (Stop button, Ctrl+C, or a budget cap #322) is not a failure: report it,
+    // keep the dashboard up so the stopped state stays visible, and exit 0.
+    if (ctx.isStopped()) {
+      io.out('\n■ Stopped.')
+      if (dashboard) await keepDashboardUp(dashboard, io)
+      return 0
+    }
+    io.err(`\n✗ ${ctx.failLabel} failed: ${err instanceof Error ? err.message : String(err)}`)
+    await dashboard?.close()
+    return 1
+  } finally {
+    ctx.clearInterrupt()
+    ctx.control?.close()
+    ctx.guard?.stop()
+    // Make sure every event (including the final `end`) reached the relay before exit.
+    if (ctx.publisher) await ctx.publisher.flush()
+  }
+}
+
 /**
  * Start this run's single-project dashboard on `cwd` (#427), or return undefined to run
  * headless. `enabled` gates it (a --no-persist run has no event log to stream); a missing
@@ -1062,6 +1131,21 @@ export async function runCli(argv: string[], io: CliIO = defaultIO): Promise<num
   // flags trim the built-in one (#314). Resolve and echo once, shared by both run paths.
   const promptConfig = await resolvePromptConfig(opts, fileConfig, cwd, io)
 
+  // The run-scoped state both run paths hand to settleRun to close out. stoppedCleanly is a
+  // getter because the onEvent sink sets it as the `end` event arrives.
+  const epilogue = (failLabel: string): RunEpilogue => ({
+    io,
+    dashboard,
+    store,
+    control,
+    guard,
+    publisher,
+    clearInterrupt,
+    maybeFireOnBeforeMergeable,
+    isStopped: () => controller.signal.aborted || stoppedCleanly,
+    failLabel,
+  })
+
   // `framework research [what]` (#331) and `framework prompt <text>` (#353): the
   // direct prompt path — run one prompt through runPrompt, which honors its gates
   // (#337/#339) but skips the scope -> build scaffolding entirely.
@@ -1069,9 +1153,8 @@ export async function runCli(argv: string[], io: CliIO = defaultIO): Promise<num
   // verbatim (it may already BE an edited preset, so it must not be re-rendered).
   // Shares all the wiring above (dashboard, store, control channel, budget).
   if (opts.research || opts.directPrompt) {
-    const kindLabel = opts.directPrompt ? 'prompt run' : 'research'
     const { userSystemPrompt, noBuiltinPrompt, eco } = promptConfig
-    try {
+    return settleRun(epilogue(opts.directPrompt ? 'prompt run' : 'research'), async () => {
       await runPrompt({
         prompt: opts.directPrompt ? intent : renderResearchPrompt(intent),
         driver,
@@ -1089,33 +1172,12 @@ export async function runCli(argv: string[], io: CliIO = defaultIO): Promise<num
         ...(modeList.includes('autopilot') ? { autopilot: true } : {}),
         ...(sessionLink ? { sessionLink } : {}),
       })
-      clearInterrupt()
-      io.out(
-        opts.directPrompt
+      return {
+        successLine: opts.directPrompt
           ? '\n✓ prompt run done.'
           : '\n✓ research done: see the REVIEW-PROBLEMS / TODO files it wrote.',
-      )
-      await store?.close()
-      await maybeFireOnBeforeMergeable()
-      if (dashboard) await keepDashboardUp(dashboard, io)
-      return 0
-    } catch (err) {
-      clearInterrupt()
-      await store?.close()
-      if (controller.signal.aborted || stoppedCleanly) {
-        io.out('\n■ Stopped.')
-        if (dashboard) await keepDashboardUp(dashboard, io)
-        return 0
       }
-      io.err(`\n✗ ${kindLabel} failed: ${err instanceof Error ? err.message : String(err)}`)
-      await dashboard?.close()
-      return 1
-    } finally {
-      clearInterrupt()
-      control?.close()
-      guard?.stop()
-      if (publisher) await publisher.flush()
-    }
+    })
   }
 
   // The fake demo defaults to a Cloudflare deploy decision so the flow ends with
@@ -1186,49 +1248,13 @@ export async function runCli(argv: string[], io: CliIO = defaultIO): Promise<num
     ...(sessionLink ? { sessionLink } : {}),
   }
 
-  try {
+  return settleRun(epilogue('run'), async () => {
     const { result, preview } = await runFramework(runOpts)
-    // Run settled: hand Ctrl+C back to the post-run dashboard/app wait below.
-    clearInterrupt()
-    io.out(
-      result.productionGrade
-        ? `\n✓ production-grade in ${result.passes} pass(es).`
-        : `\n• prototype ready${result.stoppedEarly ? ` (stopped with ${result.blockers.length} blocker(s))` : ''}.`,
-    )
-    if (preview) io.out(`\n▶ Your app is running at ${preview.url} — open it in a browser.`)
-    // Flush the event log. Best-effort.
-    await store?.close()
-    await maybeFireOnBeforeMergeable()
-    // Stay up while the dashboard and/or the app are live, then tear both down.
-    if (dashboard || preview) {
-      if (dashboard) io.out(`\nDashboard still live at ${dashboard.url}. Press Ctrl+C to exit.`)
-      else io.out(`\nPress Ctrl+C to stop the app.`)
-      await waitForInterrupt()
-      if (preview) await preview.stop()
-      await dashboard?.close()
-    }
-    return 0
-  } catch (err) {
-    clearInterrupt()
-    await store?.close()
-    // A clean stop (dashboard Stop button, Ctrl+C, or a budget cap #322) is not a
-    // failure: report it cleanly, keep the dashboard up so the stopped state is
-    // visible, and exit 0.
-    if (controller.signal.aborted || stoppedCleanly) {
-      io.out('\n■ Stopped.')
-      if (dashboard) await keepDashboardUp(dashboard, io)
-      return 0
-    }
-    io.err(`\n✗ run failed: ${err instanceof Error ? err.message : String(err)}`)
-    await dashboard?.close()
-    return 1
-  } finally {
-    clearInterrupt()
-    control?.close()
-    guard?.stop()
-    // Make sure every event (including the final `end`) reached the relay before exit.
-    if (publisher) await publisher.flush()
-  }
+    const successLine = result.productionGrade
+      ? `\n✓ production-grade in ${result.passes} pass(es).`
+      : `\n• prototype ready${result.stoppedEarly ? ` (stopped with ${result.blockers.length} blocker(s))` : ''}.`
+    return { successLine, ...(preview ? { preview } : {}) }
+  })
 }
 
 /**
