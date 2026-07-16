@@ -679,6 +679,27 @@ export async function resolveDomainPreset(
 }
 
 /**
+ * Resolve the system-prompt configuration both run paths share (#301/#314), echoing what
+ * is in effect: a user SYSTEM.md, the built-in prompt toggle, the eco section drops, and the
+ * in-context dirs. Reads SYSTEM.md once, so call it on the shared path before either run.
+ */
+async function resolvePromptConfig(
+  opts: CliOptions,
+  fileConfig: FrameworkFileConfig,
+  cwd: string,
+  io: CliIO,
+): Promise<{ userSystemPrompt?: string; noBuiltinPrompt: boolean; eco?: EcoOptions }> {
+  const userSystemPrompt = await loadUserSystemPrompt(cwd)
+  const noBuiltinPrompt = antiLazyPillOff(opts, fileConfig)
+  const eco = ecoOptions(opts)
+  if (userSystemPrompt) io.out(`◆ system prompt: ${SYSTEM_PROMPT_FILE}`)
+  if (noBuiltinPrompt) io.out(`◆ built-in system prompt: off (${opts.vanilla ? 'vanilla' : 'the-framework.yml'})`)
+  else if (eco) io.out(`◆ eco: dropping ${Object.keys(eco).filter(k => eco[k as keyof EcoOptions]).join(', ')}`)
+  if (opts.context.length) io.out(`◆ context: ${opts.context.join(', ')}`)
+  return { ...(userSystemPrompt ? { userSystemPrompt } : {}), noBuiltinPrompt, ...(eco ? { eco } : {}) }
+}
+
+/**
  * The `framework` command. Wires the parsed options into {@link runFramework}
  * over a live dashboard + terminal narration, and resolves with an exit code.
  * Returns 0 on success, 1 on a run error, 2 on a usage error.
@@ -1022,6 +1043,10 @@ export async function runCli(argv: string[], io: CliIO = defaultIO): Promise<num
     io.out(`◆ consumption limits: off — ${AGENT_SPECS[opts.agent].label} reports no quota, so nothing gates your subscription spend.`)
   }
 
+  // A user SYSTEM.md + the anti-lazy-pill toggle shape the system prompt (#301), and the eco
+  // flags trim the built-in one (#314). Resolve and echo once, shared by both run paths.
+  const promptConfig = await resolvePromptConfig(opts, fileConfig, cwd, io)
+
   // `framework research [what]` (#331) and `framework prompt <text>` (#353): the
   // direct prompt path — run one prompt through runPrompt, which honors its gates
   // (#337/#339) but skips the scope -> build scaffolding entirely.
@@ -1030,13 +1055,7 @@ export async function runCli(argv: string[], io: CliIO = defaultIO): Promise<num
   // Shares all the wiring above (dashboard, store, control channel, budget).
   if (opts.research || opts.directPrompt) {
     const kindLabel = opts.directPrompt ? 'prompt run' : 'research'
-    const userSystemPrompt = await loadUserSystemPrompt(cwd)
-    const noBuiltinPrompt = antiLazyPillOff(opts, fileConfig)
-    const eco = ecoOptions(opts)
-    if (userSystemPrompt) io.out(`◆ system prompt: ${SYSTEM_PROMPT_FILE}`)
-    if (noBuiltinPrompt) io.out(`◆ built-in system prompt: off (${opts.vanilla ? 'vanilla' : 'the-framework.yml'})`)
-    else if (eco) io.out(`◆ eco: dropping ${Object.keys(eco).filter(k => eco[k as keyof EcoOptions]).join(', ')}`)
-    if (opts.context.length) io.out(`◆ context: ${opts.context.join(', ')}`)
+    const { userSystemPrompt, noBuiltinPrompt, eco } = promptConfig
     try {
       await runPrompt({
         prompt: opts.directPrompt ? intent : renderResearchPrompt(intent),
@@ -1119,15 +1138,7 @@ export async function runCli(argv: string[], io: CliIO = defaultIO): Promise<num
       }
     : undefined
 
-  // A user SYSTEM.md and the-framework.yml's anti-lazy-pill toggle shape the system
-  // prompt injected into every prompt (#301). The built-in pill is on unless removed.
-  const userSystemPrompt = await loadUserSystemPrompt(cwd)
-  const noBuiltinPrompt = antiLazyPillOff(opts, fileConfig)
-  const eco = ecoOptions(opts)
-  if (userSystemPrompt) io.out(`◆ system prompt: ${SYSTEM_PROMPT_FILE}`)
-  if (noBuiltinPrompt) io.out(`◆ built-in system prompt: off (${opts.vanilla ? 'vanilla' : 'the-framework.yml'})`)
-  else if (eco) io.out(`◆ eco: dropping ${Object.keys(eco).filter(k => eco[k as keyof EcoOptions]).join(', ')}`)
-  if (opts.context.length) io.out(`◆ context: ${opts.context.join(', ')}`)
+  const { userSystemPrompt, noBuiltinPrompt, eco } = promptConfig
 
   const runOpts: RunFrameworkOptions = {
     intent,
