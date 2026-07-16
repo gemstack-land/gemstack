@@ -679,6 +679,36 @@ export async function resolveDomainPreset(
 }
 
 /**
+ * Start this run's single-project dashboard on `cwd` (#427), or return undefined to run
+ * headless. `enabled` gates it (a --no-persist run has no event log to stream); a missing
+ * bundle (an old install) or a startup error also fall back to headless. `resumed` tags the
+ * URL line, and `headlessNote` is the fallback message's tail.
+ */
+async function startRunDashboard(
+  enabled: boolean,
+  cwd: string,
+  port: number | undefined,
+  io: CliIO,
+  labels: { resumed?: boolean; headlessNote: string },
+): Promise<Dashboard | undefined> {
+  if (!enabled) return undefined
+  const clientBundleDir = await resolveDashboardBundle()
+  if (!clientBundleDir) return undefined
+  try {
+    const dashboard = await startDashboard({
+      ...(port !== undefined ? { port } : {}),
+      clientBundleDir,
+      projects: singleProjectProvider(cwd),
+    })
+    io.out(`◆ dashboard${labels.resumed ? ' (resumed)' : ''}: ${dashboard.url}`)
+    return dashboard
+  } catch (err) {
+    io.err(`could not start dashboard (${err instanceof Error ? err.message : String(err)}); ${labels.headlessNote}`)
+    return undefined
+  }
+}
+
+/**
  * Resolve the system-prompt configuration both run paths share (#301/#314), echoing what
  * is in effect: a user SYSTEM.md, the built-in prompt toggle, the eco section drops, and the
  * in-context dirs. Reads SYSTEM.md once, so call it on the shared path before either run.
@@ -858,28 +888,13 @@ export async function runCli(argv: string[], io: CliIO = defaultIO): Promise<num
     for (const resolve of pendingChoices.values()) resolve({ picked: 'proceed', by: 'auto' })
     pendingChoices.clear()
   })
-  // Serve the new Vike + Telefunc dashboard (#405/#427) for this run, in single-project
-  // mode: the SPA reads this one `cwd` (its own `.the-framework/events.jsonl` +
-  // control.jsonl) without touching the global registry, so a one-shot run never pollutes
-  // the Projects list. It streams the persisted event log, so a --no-persist run (or an
-  // old install missing the built bundle) runs headless.
-  let dashboard: Dashboard | undefined
-  let clientBundleDir: string | undefined
-  if (opts.dashboard && opts.persist) clientBundleDir = await resolveDashboardBundle()
-  if (clientBundleDir) {
-    try {
-      dashboard = await startDashboard({
-        ...(opts.port !== undefined ? { port: opts.port } : {}),
-        clientBundleDir,
-        projects: singleProjectProvider(cwd),
-      })
-      io.out(`◆ dashboard: ${dashboard.url}`)
-    } catch (err) {
-      dashboard = undefined
-      clientBundleDir = undefined
-      io.err(`could not start dashboard (${err instanceof Error ? err.message : String(err)}); continuing headless`)
-    }
-  }
+  // Serve the new Vike + Telefunc dashboard (#405/#427) for this run, in single-project mode:
+  // the SPA reads this one `cwd`'s event/control logs without touching the global registry, so
+  // a one-shot run never pollutes the Projects list. It streams the persisted event log, so a
+  // --no-persist run (or an old install missing the built bundle) runs headless.
+  const dashboard = await startRunDashboard(opts.dashboard && opts.persist, cwd, opts.port, io, {
+    headlessNote: 'continuing headless',
+  })
   // The new dashboard steers this live run purely through control.jsonl (its Stop / choice
   // picks are Telefunc writes to that file, #427), which the watcher below tails whenever
   // the dashboard is up — not only when a daemon is.
@@ -1477,22 +1492,10 @@ async function resumeRun(opts: CliOptions, io: CliIO): Promise<number> {
   // `.the-framework/events.jsonl` is exactly what the SPA's event Channel tails, so the
   // past run replays with no extra wiring (it is finished, so there is nothing to steer).
   // A missing bundle (an old install) replays to the terminal only.
-  let dashboard: Dashboard | undefined
-  if (opts.dashboard) {
-    const clientBundleDir = await resolveDashboardBundle()
-    if (clientBundleDir) {
-      try {
-        dashboard = await startDashboard({
-          ...(opts.port !== undefined ? { port: opts.port } : {}),
-          clientBundleDir,
-          projects: singleProjectProvider(cwd),
-        })
-        io.out(`◆ dashboard (resumed): ${dashboard.url}`)
-      } catch (err) {
-        io.err(`could not start dashboard (${err instanceof Error ? err.message : String(err)}); replaying to terminal only`)
-      }
-    }
-  }
+  const dashboard = await startRunDashboard(opts.dashboard, cwd, opts.port, io, {
+    resumed: true,
+    headlessNote: 'replaying to terminal only',
+  })
 
   for (const event of events) {
     io.out(formatFrameworkEvent(event))
