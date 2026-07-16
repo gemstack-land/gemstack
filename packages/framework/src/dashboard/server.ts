@@ -146,9 +146,18 @@ export function startDashboard(opts: DashboardOptions = {}): Promise<Dashboard> 
   const host = opts.host ?? '127.0.0.1'
   const port = opts.port ?? 4200
   const clientBundleDir = opts.clientBundleDir
-  // `projects` is passed raw (may be undefined) so the mount falls back to the global
-  // registry, byte-identical to the daemon default; the per-run dashboard passes a
-  // single-project provider, the relay an empty one.
+
+  // A broken install ships no built bundle (the published package always does), so serve
+  // 503 for everything rather than stand up a half-wired mount. Returning here lets the
+  // main path below treat the bundle, mount, and quota as present with no re-checks.
+  if (!clientBundleDir) {
+    const server = createServer((_req, res) => {
+      res.writeHead(503, { 'content-type': 'text/plain' })
+      res.end('the dashboard bundle is not installed')
+    })
+    return listenDashboard(server, host, port, () => closeServer(server))
+  }
+
   // Bundle the three Preview callbacks (#475) into one context handler set, present only
   // when the host wired a Preview (the daemon does; the relay/per-run dashboard do not).
   const preview = opts.onPreview
@@ -156,49 +165,44 @@ export function startDashboard(opts: DashboardOptions = {}): Promise<Dashboard> 
     : undefined
   // The usage panel polls for the dashboard's whole life, not just during a run:
   // it has to show where the account stands while nothing is running (#533).
-  const quota = clientBundleDir ? (opts.quota ?? defaultQuotaSource()) : undefined
-  const telefuncMount = clientBundleDir
-    ? makeTelefuncMount(
-        opts.onStart,
-        opts.projects,
-        undefined,
-        opts.onAddProject,
-        opts.preferences ?? registryPreferencesStore(),
-        preview,
-        quota,
-      )
-    : undefined
+  const quota = opts.quota ?? defaultQuotaSource()
+  // `projects` is passed raw (may be undefined) so the mount falls back to the global
+  // registry, byte-identical to the daemon default; the per-run dashboard passes a
+  // single-project provider, the relay an empty one.
+  const telefuncMount = makeTelefuncMount(
+    opts.onStart,
+    opts.projects,
+    undefined,
+    opts.onAddProject,
+    opts.preferences ?? registryPreferencesStore(),
+    preview,
+    quota,
+  )
 
   const server = createServer((req, res) => {
-    if (!clientBundleDir) {
-      // A broken install with no built bundle (the published package ships it).
-      res.writeHead(503, { 'content-type': 'text/plain' })
-      res.end('the dashboard bundle is not installed')
-      return
-    }
     const { pathname } = new URL(req.url ?? '/', 'http://localhost')
     if (pathname === '/_telefunc' || pathname.startsWith('/_telefunc/')) {
-      void telefuncMount!(req, res)
+      void telefuncMount(req, res)
       return
     }
     void serveClientBundle(req, res, clientBundleDir)
   })
+  return listenDashboard(server, host, port, async () => {
+    // Stop polling with the server: the poller outlives every run by design,
+    // so nothing else would ever end it.
+    quota.stop()
+    await closeServer(server)
+  })
+}
 
+/** Bind the server and resolve a {@link Dashboard} handle; rejects if the port is already taken. */
+function listenDashboard(server: Server, host: string, port: number, close: () => Promise<void>): Promise<Dashboard> {
   return new Promise<Dashboard>((resolvePromise, rejectPromise) => {
     server.once('error', rejectPromise)
     server.listen(port, host, () => {
       server.removeListener('error', rejectPromise)
       const address = server.address() as AddressInfo
-      const url = `http://${host}:${address.port}`
-      resolvePromise({
-        url,
-        close: async () => {
-          // Stop polling with the server: the poller outlives every run by design,
-          // so nothing else would ever end it.
-          quota?.stop()
-          await closeServer(server)
-        },
-      })
+      resolvePromise({ url: `http://${host}:${address.port}`, close })
     })
   })
 }
