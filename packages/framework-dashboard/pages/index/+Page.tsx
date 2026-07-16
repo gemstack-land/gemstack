@@ -13,6 +13,7 @@ import { useLiveEvents } from '../../lib/use-live-events.js'
 import { useRuns } from '../../lib/use-runs.js'
 import { useLoaded } from '../../lib/use-async.js'
 import { usePersistentState } from '../../lib/use-persistent-state.js'
+import { useContextSet } from '../../lib/use-context-set.js'
 import { pendingChoices, agentViews } from '../../lib/live-state.js'
 
 /** Stable, so `files` keeps one identity while no project is selected. */
@@ -41,17 +42,8 @@ export default function Page() {
 
   // The run Context set lives in the shell (#492/#504) so the two surfaces that feed it share
   // one source of truth: the `#` file chips + whole-repo Context selector in the Start form
-  // (main pane), and the file tree in the right rail. Reset when the project changes — the
-  // picked file paths are that project's.
-  const [context, setContext] = useState<Set<string>>(new Set())
-  const addContext = (path: string) =>
-    setContext(prev => (prev.has(path) ? prev : new Set(prev).add(path)))
-  const toggleContext = (path: string) =>
-    setContext(prev => {
-      const next = new Set(prev)
-      next.has(path) ? next.delete(path) : next.add(path)
-      return next
-    })
+  // (main pane), and the file tree in the right rail.
+  const { context, add: addContext, toggle: toggleContext, reset: resetContext } = useContextSet()
 
   // The selected project's files (git ls-files), fetched once here and handed to both the
   // `#` picker and the tree. Empty when no project / on the relay (no checkout).
@@ -67,7 +59,7 @@ export default function Page() {
   const selectProject = (id: string) => {
     setProjectId(id) // persisted, so a refresh returns here
     setRunId(null) // switching projects always returns to the home launcher
-    setContext(new Set()) // the picked context is the old project's — start fresh
+    resetContext() // the picked context is the old project's — start fresh
   }
 
   // The Overview dashboard (#471): no project selected. Clearing projectId forgets the
