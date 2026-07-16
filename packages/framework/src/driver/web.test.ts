@@ -84,3 +84,44 @@ test('WebDriver has no readCode (remote workspace is not host-readable)', async 
   const session = await driver.start({ cwd: '/ws' })
   assert.equal((session as { readCode?: unknown }).readCode, undefined)
 })
+
+test('collect returns the handle with done:false when no resolver is configured', async () => {
+  const { fetch } = stubFetch(jsonResponse(200, OK))
+  const driver = new WebDriver({ routineId: 'trig_1', token: 't', fetch })
+  const session = await driver.start({ cwd: '/ws' })
+  await session.prompt('go')
+  const outcome = await session.collect!()
+  assert.deepEqual(outcome, { sessionId: 'session_01ABC', sessionUrl: 'https://claude.ai/code/session_01ABC', done: false })
+})
+
+test('collect resolves the branch/PR via the injected resolver', async () => {
+  const { fetch } = stubFetch(jsonResponse(200, OK))
+  const seen: string[] = []
+  const driver = new WebDriver({
+    routineId: 'trig_1',
+    token: 't',
+    fetch,
+    resolveOutcome: handle => {
+      seen.push(handle.sessionId)
+      return Promise.resolve({ done: true, branch: 'claude/fix-auth', prUrl: 'https://github.com/o/r/pull/7' })
+    },
+  })
+  const session = await driver.start({ cwd: '/ws' })
+  await session.prompt('go')
+  const outcome = await session.collect!()
+  assert.deepEqual(outcome, {
+    sessionId: 'session_01ABC',
+    sessionUrl: 'https://claude.ai/code/session_01ABC',
+    done: true,
+    branch: 'claude/fix-auth',
+    prUrl: 'https://github.com/o/r/pull/7',
+  })
+  assert.deepEqual(seen, ['session_01ABC'])
+})
+
+test('collect throws before any prompt has fired a session', async () => {
+  const { fetch } = stubFetch(jsonResponse(200, OK))
+  const driver = new WebDriver({ routineId: 'trig_1', token: 't', fetch })
+  const session = await driver.start({ cwd: '/ws' })
+  await assert.rejects(() => session.collect!(), /before a prompt fired a session/)
+})

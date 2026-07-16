@@ -1,5 +1,5 @@
 import { combineFraming, makeEmit } from './session-support.js'
-import type { Driver, DriverPromptOptions, DriverSession, DriverStartOptions, DriverTurn } from './types.js'
+import type { Driver, DriverOutcome, DriverPromptOptions, DriverSession, DriverStartOptions, DriverTurn } from './types.js'
 
 // SPIKE (#610): a Driver that runs the task on Claude Code on the web instead of the local CLI.
 // It drives the *supported* surface — the routines fire API — not the browser UI (extension /
@@ -45,6 +45,29 @@ export interface WebDriverOptions {
   apiVersion?: string
   /** `fetch` override for tests. Default the global `fetch`. */
   fetch?: FetchLike
+  /**
+   * How to discover the pushed branch / PR for a fired session (#610). The fire
+   * API has no read-back, so branch discovery is the caller's policy: the daemon
+   * (#605) polls GitHub for the branch the cloud session pushed. Absent means
+   * {@link WebSession.collect} reports `done: false` with just the handle.
+   */
+  resolveOutcome?: (handle: SessionHandle, opts?: { signal?: AbortSignal }) => Promise<ResolvedOutcome>
+}
+
+/** The handle a fired cloud session hands back: what a later collect resolves from. */
+export interface SessionHandle {
+  sessionId: string
+  sessionUrl: string
+}
+
+/** What a {@link WebDriverOptions.resolveOutcome} reports for a fired session. */
+export interface ResolvedOutcome {
+  /** Whether the session's branch has been pushed yet. */
+  done: boolean
+  /** The pushed branch, once it exists. */
+  branch?: string
+  /** The PR opened from the branch, once one exists. */
+  prUrl?: string
 }
 
 /** Default beta header for the routines fire endpoint (experimental; dated). */
@@ -76,6 +99,8 @@ export class WebDriver implements Driver {
 export class WebSession implements DriverSession {
   readonly id: string
   readonly cwd: string
+  /** The last session `prompt` fired; what {@link collect} resolves from. */
+  private lastHandle: SessionHandle | undefined
 
   constructor(
     private readonly config: WebDriverOptions,
@@ -116,9 +141,31 @@ export class WebSession implements DriverSession {
     // Fire-and-forget: the turn is the session handle, not final code. The url is what a UI
     // links to and what a later collect step teleports / reads the PR from.
     const sessionId = parsed.claude_code_session_id
+    this.lastHandle = { sessionId, sessionUrl: parsed.claude_code_session_url }
     const turn: DriverTurn = { text: parsed.claude_code_session_url, sessionId }
     emit({ type: 'result', text: turn.text, sessionId })
     return turn
+  }
+
+  /**
+   * Await the fired session's result (#610). `prompt` is fire-and-forget, so the
+   * finished code lands later as the branch the cloud session pushes. With no
+   * {@link WebDriverOptions.resolveOutcome} the outcome is just the handle and
+   * `done: false`; with one, the caller's branch-discovery decides `done`.
+   */
+  async collect(opts: { signal?: AbortSignal } = {}): Promise<DriverOutcome> {
+    const handle = this.lastHandle
+    if (!handle) throw new Error(`[framework] ${this.driverName} collect called before a prompt fired a session`)
+    const base: DriverOutcome = { sessionId: handle.sessionId, sessionUrl: handle.sessionUrl, done: false }
+    const resolve = this.config.resolveOutcome
+    if (!resolve) return base
+    const r = await resolve(handle, opts)
+    return {
+      ...base,
+      done: r.done,
+      ...(r.branch ? { branch: r.branch } : {}),
+      ...(r.prUrl ? { prUrl: r.prUrl } : {}),
+    }
   }
 
   dispose(): Promise<void> {

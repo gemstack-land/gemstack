@@ -74,6 +74,15 @@ export interface DriverSession {
    * whose workspace is not host-readable may omit it and rely on a runner.
    */
   readCode?(path: string): Promise<string>
+  /**
+   * The eventual result of the last {@link prompt} (#610). Optional: only an
+   * **async / off-machine** driver needs it. A local driver's `prompt` already
+   * resolves with the finished turn, so it omits this. The web driver's `prompt`
+   * is fire-and-forget (it returns the cloud session handle the instant the
+   * session is created), so the finished code arrives later as a pushed branch /
+   * PR; `collect` is how a caller (the daemon, #605) awaits and gates on it.
+   */
+  collect?(opts?: { signal?: AbortSignal }): Promise<DriverOutcome>
   /** Tear the session down (kill the process, free resources). Idempotent. */
   dispose(): Promise<void>
 }
@@ -98,6 +107,26 @@ export interface DriverTurn {
   sessionId?: string
   /** Token + cost accounting for this turn, when the agent reports it (#322). */
   usage?: DriverUsage
+}
+
+/**
+ * The eventual result of an async / off-machine turn (#610), returned by
+ * {@link DriverSession.collect}. For the web driver the code lands as a branch
+ * the cloud session pushes to GitHub (and, once opened, a PR); `done` flips true
+ * when that branch exists. The seam gates on the code, so this is the outcome a
+ * caller waits for after a fire-and-forget `prompt`.
+ */
+export interface DriverOutcome {
+  /** The cloud session id the turn produced. */
+  sessionId: string
+  /** Link to the session on claude.ai (to watch or continue it). */
+  sessionUrl: string
+  /** Whether the session has produced its result yet (its branch is pushed). */
+  done: boolean
+  /** The branch the session pushed, once it exists. */
+  branch?: string
+  /** The PR opened from the branch, once one exists. */
+  prUrl?: string
 }
 
 /**
