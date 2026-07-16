@@ -329,60 +329,27 @@ export async function runFramework(opts: RunFrameworkOptions): Promise<RunFramew
     onEvent: onDriverEvent,
   })
 
-  // Materialize the domain preset's review policy against this run's driver: its
-  // loops, with its prompts as driver-backed passes sharing the run's abort signal.
-  // Exposed on the result, and driven as the review phase below (#252).
-  const loop = domainPreset
-    ? new LoopEngine({
-        loops: [...domainPreset.loops],
-        prompts: driverLoopPrompts(session, domainPreset.prompts, {
-          signal: runSignal,
-        }),
-      })
-    : undefined
-
-  // The production-grade review phase. Default: the built-in checklist. With a
-  // domain preset, its loop *replaces* the checklist (#252) — each pass fires the
-  // preset's review chain through the driver — falling back to the built-in when
-  // the preset has no loop for the build event, so a run is never left unreviewed.
-  // The build event kind: an explicit run choice wins, else the preset's own
-  // default, else `major-change`. This is how a `bug-fix` run reaches the preset's
-  // bug-fix loop (#265).
-  const buildEvent = opts.buildEvent ?? domainPreset?.defaultEvent ?? 'major-change'
-  const reviewChecklist = loop
-    ? domainLoopChecklist(loop, { kind: buildEvent, fallback: driverChecklist(session) })
-    : driverChecklist(session)
-  if (loop)
-    emit({
-      kind: 'log',
-      message: `Review policy: the ${domainPreset!.title} loop drives the ${buildEvent} review`,
-    })
+  // The domain preset's review policy (exposed on the result) and the production-grade
+  // review checklist it drives.
+  const { loop, reviewChecklist } = buildReview(session, domainPreset, {
+    ...(opts.buildEvent ? { buildEvent: opts.buildEvent } : {}),
+    signal: runSignal,
+    emit,
+  })
 
   // Boot-and-serve gate: provision a runner so the checklist can gate on the app
-  // actually running (mergeChecklists unions the review with a real serveCheck).
-  // Local adopts (never deletes) the driver's cwd in place; docker sandboxes the
-  // check in a throwaway container (#229). An injected runner wins over both.
+  // actually running. Local adopts (never deletes) the driver's cwd in place; docker
+  // sandboxes the check in a throwaway container (#229). An injected runner wins over both.
   const sandbox = opts.sandbox ?? 'local'
-  let runner: RunnerSession | undefined
-  if (opts.serve) runner = opts.runner ?? (await provisionServeRunner(sandbox, opts.cwd, opts.serve, emit))
   const s = opts.serve
-  let checklist: NonNullable<BootstrapSteps['checklist']> = reviewChecklist
-  if (runner && s) {
-    const check = serveCheck(runner, {
-      serve: s.command,
-      ...(s.install ? { install: s.install } : {}),
-      ...(s.build ? { build: s.build } : {}),
-      ...(s.port !== undefined ? { port: s.port } : {}),
-      ...(s.waitMs !== undefined ? { waitMs: s.waitMs } : {}),
-      ...(s.healthPath ? { healthPath: s.healthPath } : {}),
-      onProgress: message => emit({ kind: 'log', message: `serve: ${message}` }),
-    })
-    // The build runs on the host, so a sandboxed container must be re-seeded with
-    // the latest host source before every check (each pass changes it). Local reads
-    // the host dir live, so it needs no sync.
-    const serveStep = sandbox === 'docker' && !opts.runner ? syncThenServe(runner, opts.cwd, check, emit) : check
-    checklist = mergeChecklists(reviewChecklist, serveStep)
-  }
+  let runner: RunnerSession | undefined
+  if (s) runner = opts.runner ?? (await provisionServeRunner(sandbox, opts.cwd, s, emit))
+  const checklist = withServeCheck(reviewChecklist, runner, s, {
+    sandbox,
+    cwd: opts.cwd,
+    injectedRunner: opts.runner !== undefined,
+    emit,
+  })
 
   // A real driver writes files to the workspace, so the build/improve steps can
   // detect an empty workspace and hard-scaffold it (#182). The fake driver writes
@@ -461,6 +428,64 @@ export async function runFramework(opts: RunFrameworkOptions): Promise<RunFramew
     // Keep the runner alive only when it owns a live preview handed to the caller.
     if (runner && !preview) await runner.dispose()
   }
+}
+
+/**
+ * Materialize the domain preset's review policy against the run's driver, and the
+ * production-grade review checklist it drives. Default: the built-in checklist. With a
+ * domain preset, its loop *replaces* the checklist (#252) — each pass fires the preset's
+ * review chain through the driver — falling back to the built-in when the preset has no
+ * loop for the build event, so a run is never left unreviewed. The build event kind: an
+ * explicit run choice wins, else the preset's own default, else `major-change` — how a
+ * `bug-fix` run reaches the preset's bug-fix loop (#265). The `loop` is returned so the
+ * caller can expose it on the result.
+ */
+function buildReview(
+  session: DriverSession,
+  domainPreset: DomainPreset | undefined,
+  ctx: { buildEvent?: string; signal: AbortSignal; emit: (event: FrameworkEvent) => void },
+): { loop: LoopEngine | undefined; reviewChecklist: NonNullable<BootstrapSteps['checklist']> } {
+  const loop = domainPreset
+    ? new LoopEngine({
+        loops: [...domainPreset.loops],
+        prompts: driverLoopPrompts(session, domainPreset.prompts, { signal: ctx.signal }),
+      })
+    : undefined
+  const buildEvent = ctx.buildEvent ?? domainPreset?.defaultEvent ?? 'major-change'
+  const reviewChecklist = loop
+    ? domainLoopChecklist(loop, { kind: buildEvent, fallback: driverChecklist(session) })
+    : driverChecklist(session)
+  if (loop && domainPreset) {
+    ctx.emit({ kind: 'log', message: `Review policy: the ${domainPreset.title} loop drives the ${buildEvent} review` })
+  }
+  return { loop, reviewChecklist }
+}
+
+/**
+ * Union the review checklist with a boot-and-serve gate (#229) when the run has a runner:
+ * `serveCheck` verifies the app actually boots, and `mergeChecklists` runs it alongside
+ * the review. A docker sandbox re-seeds the container from the host source before every
+ * check (the build writes to the host each pass); local reads the host dir live, so it
+ * needs no sync. Without a runner/serve the review checklist stands alone.
+ */
+function withServeCheck(
+  review: NonNullable<BootstrapSteps['checklist']>,
+  runner: RunnerSession | undefined,
+  serve: ServeConfig | undefined,
+  ctx: { sandbox: 'local' | 'docker'; cwd: string; injectedRunner: boolean; emit: (event: FrameworkEvent) => void },
+): NonNullable<BootstrapSteps['checklist']> {
+  if (!runner || !serve) return review
+  const check = serveCheck(runner, {
+    serve: serve.command,
+    ...(serve.install ? { install: serve.install } : {}),
+    ...(serve.build ? { build: serve.build } : {}),
+    ...(serve.port !== undefined ? { port: serve.port } : {}),
+    ...(serve.waitMs !== undefined ? { waitMs: serve.waitMs } : {}),
+    ...(serve.healthPath ? { healthPath: serve.healthPath } : {}),
+    onProgress: message => ctx.emit({ kind: 'log', message: `serve: ${message}` }),
+  })
+  const serveStep = ctx.sandbox === 'docker' && !ctx.injectedRunner ? syncThenServe(runner, ctx.cwd, check, ctx.emit) : check
+  return mergeChecklists(review, serveStep)
 }
 
 
