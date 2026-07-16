@@ -31,3 +31,13 @@ export {
   type SpawnLike,
   type SpawnedProcess,
 } from './agent-cli.js'
+// SPIKE (#610): drive Claude Code on the web via the routines fire API, behind the same seam.
+export {
+  WebDriver,
+  WebSession,
+  ROUTINE_BETA_HEADER,
+  type WebDriverOptions,
+  type FetchLike,
+  type FetchInit,
+  type FetchResponse,
+} from './web.js'
