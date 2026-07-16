@@ -76,9 +76,13 @@ export const MAX_AWAIT_ROUNDS = 5
  * vary per caller ("Continue" / "Continue the backlog entry" / "Continue building X")
  * carried no distinct meaning to it. One constant so a reword lands everywhere at once
  * instead of one path and not the others (#570).
+ *
+ * No "do not ask again" tail: a capable agent does not re-ask a settled question on
+ * its own, so spelling it out is babysitting we leave off until a run shows it is
+ * needed (#570 review).
  */
 export function continuationPrompt(question: string, answer: string): string {
-  return `You paused to ask: "${question}". The user chose: ${answer}. Continue with that decision, and do not ask again unless a genuinely new choice comes up.`
+  return `You paused to ask: "${question}". The user chose: ${answer}. Continue with that decision.`
 }
 
 /** The log line printed when a confirmation gate is declined (#358). */

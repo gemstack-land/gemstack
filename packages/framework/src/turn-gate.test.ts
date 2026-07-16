@@ -17,6 +17,8 @@ test('continuationPrompt is one wording for every path, carrying the title and t
   // No caller-specific clause ("backlog entry" / "building X"): the same string everywhere.
   assert.equal(prompt, continuationPrompt('Which data store?', 'Postgres'))
   assert.doesNotMatch(prompt, /backlog entry|Continue building/)
+  // No "do not ask again" babysitting tail (#570 review): a capable agent handles that itself.
+  assert.doesNotMatch(prompt, /do not ask again/)
 })
 
 test('parseChoicesGate parses a well-formed await-choices block (#337)', () => {
