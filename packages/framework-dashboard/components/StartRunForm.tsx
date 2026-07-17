@@ -178,17 +178,17 @@ export function StartRunForm({
   // Eco is disabled + dimmed under Vanilla (nothing left to trim); the Eco sub-drops show only
   // while Eco is on.
   const mainOptions: OptionRow[] = [
-    { key: 'autopilot', label: 'Autopilot', title: 'Auto-accept the recommended choice after a countdown; also relaxes the maintenance stance', checked: autopilot },
-    { key: 'technical', label: 'Technical control', title: 'Expose technical detail (e.g. tech-stack choices)', checked: technical },
-    { key: 'vanilla', label: 'Disable system prompt', title: "Remove all system prompts: the same as raw Claude Code. Expand 'See actual prompt sent' to read what it removes.", checked: vanilla },
-    { key: 'eco', label: 'Eco', title: 'Trim the built-in system prompt to save tokens', checked: eco && !ecoDisabled, disabled: ecoDisabled },
-    { key: 'onBeforeMergeableQuality', label: 'Post-merge cleanup', title: "When the run signals it's ready for merge, run maintainability, readability, and security-audit passes", checked: onBeforeMergeableQuality },
-    { key: 'browser', label: 'Browser', title: 'Give the agent a real browser via chrome-devtools-mcp: navigate pages, read console + network, inspect the DOM, and screenshot', checked: browser },
+    { key: 'autopilot', label: 'Autopilot', description: 'Auto-accepts the recommended choice after a countdown.', title: 'Auto-accept the recommended choice after a countdown; also relaxes the maintenance stance', checked: autopilot },
+    { key: 'technical', label: 'Technical control', description: 'Surfaces technical detail like tech-stack choices.', title: 'Expose technical detail (e.g. tech-stack choices)', checked: technical },
+    { key: 'vanilla', label: 'Disable system prompt', description: 'Raw Claude Code, with no added system prompt.', title: "Remove all system prompts: the same as raw Claude Code. Expand 'See actual prompt sent' to read what it removes.", checked: vanilla },
+    { key: 'eco', label: 'Eco', description: 'Trims the system prompt to save tokens.', title: 'Trim the built-in system prompt to save tokens', checked: eco && !ecoDisabled, disabled: ecoDisabled },
+    { key: 'onBeforeMergeableQuality', label: 'Post-merge cleanup', description: 'Runs quality passes once it is ready to merge.', title: "When the run signals it's ready for merge, run maintainability, readability, and security-audit passes", checked: onBeforeMergeableQuality },
+    { key: 'browser', label: 'Browser', description: 'Gives the agent a real browser to inspect pages.', title: 'Give the agent a real browser via chrome-devtools-mcp: navigate pages, read console + network, inspect the DOM, and screenshot', checked: browser },
   ]
   const ecoOptions: OptionRow[] = [
-    { key: 'ecoPlanning', label: 'Auto planning', title: 'Drop the planning section, letting the agent plan on its own', checked: ecoPlanning },
-    { key: 'ecoResearch', label: 'Auto research', title: 'Drop the alternatives/variability section', checked: ecoResearch },
-    { key: 'ecoMaintenance', label: 'Auto maintenance', title: 'Drop the maintenance section', checked: ecoMaintenance },
+    { key: 'ecoPlanning', label: 'Auto planning', description: 'Drops the planning section; the agent plans itself.', title: 'Drop the planning section, letting the agent plan on its own', checked: ecoPlanning },
+    { key: 'ecoResearch', label: 'Auto research', description: 'Drops the alternatives/variability section.', title: 'Drop the alternatives/variability section', checked: ecoResearch },
+    { key: 'ecoMaintenance', label: 'Auto maintenance', description: 'Drops the maintenance section.', title: 'Drop the maintenance section', checked: ecoMaintenance },
   ]
 
   return (

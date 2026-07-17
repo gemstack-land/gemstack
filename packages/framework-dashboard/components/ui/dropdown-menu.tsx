@@ -46,7 +46,7 @@ export function DropdownMenuCheckboxItem({
 }: ComponentProps<typeof Menu.CheckboxItem>) {
   return (
     <Menu.CheckboxItem className={cn(ITEM_CLASS, className)} closeOnClick={closeOnClick} {...props}>
-      <span className="flex h-3.5 w-3.5 items-center justify-center">
+      <span className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center">
         <Menu.CheckboxItemIndicator>
           <Check className="h-3.5 w-3.5" />
         </Menu.CheckboxItemIndicator>

@@ -20,6 +20,8 @@ export type OptionRow = {
   key: keyof Preferences
   label: string
   title: string
+  /** A short one-line summary shown under the label (#654). */
+  description?: string
   checked: boolean
   /** Disabled beyond the form-wide busy flag (e.g. Eco has nothing to trim under Vanilla). */
   disabled?: boolean
@@ -27,6 +29,16 @@ export type OptionRow = {
 
 function setOption(key: keyof Preferences, checked: boolean) {
   updatePreferences({ [key]: checked } as Partial<Preferences>)
+}
+
+/** An option's label with a short one-line description under it (#654). */
+function OptionLabel({ label, description }: { label: string; description?: string | undefined }) {
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span className="leading-tight">{label}</span>
+      {description && <span className="text-xs font-normal text-[var(--color-muted-foreground)]">{description}</span>}
+    </span>
+  )
 }
 
 export function OptionsMenu({
@@ -58,7 +70,7 @@ export function OptionsMenu({
         )}
         <ChevronDown className="h-3.5 w-3.5 opacity-70" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
+      <DropdownMenuContent align="start" className="min-w-[19rem] max-w-[22rem]">
         {options.map(o => (
           <DropdownMenuCheckboxItem
             key={o.key}
@@ -66,8 +78,9 @@ export function OptionsMenu({
             disabled={busy || !!o.disabled}
             onCheckedChange={checked => setOption(o.key, checked)}
             title={o.title}
+            className="items-start"
           >
-            {o.label}
+            <OptionLabel label={o.label} description={o.description} />
           </DropdownMenuCheckboxItem>
         ))}
         {showEco && (
@@ -80,9 +93,9 @@ export function OptionsMenu({
                 disabled={busy}
                 onCheckedChange={checked => setOption(o.key, checked)}
                 title={o.title}
-                className="pl-8"
+                className="items-start pl-8"
               >
-                {o.label}
+                <OptionLabel label={o.label} description={o.description} />
               </DropdownMenuCheckboxItem>
             ))}
           </>
