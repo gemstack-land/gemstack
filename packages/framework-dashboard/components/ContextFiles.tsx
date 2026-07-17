@@ -1,17 +1,9 @@
 import { X } from 'lucide-react'
 
-// The files picked into the run Context (#661), shown as removable chips. Files reach the Context
-// two ways — a `#` mention in the prompt (#504) and the right-rail file tree — and both add the
-// same relative path to the shared context set. Without this they were invisible once the prompt
-// was cleared; each chip's X removes the file (which also unticks it in the file tree).
-
-/** The last path segment, for a compact chip label. */
-function basename(path: string): string {
-  const trimmed = path.replace(/\/+$/, '')
-  const slash = trimmed.lastIndexOf('/')
-  return slash >= 0 ? trimmed.slice(slash + 1) : trimmed
-}
-
+// The files picked into the run Context (#661), listed like the repo rows but with an X to remove
+// instead of a checkbox. Files reach the Context two ways — a `#` mention in the prompt (#504) and
+// the right-rail file tree — and both add the same relative path to the shared context set.
+// Without this they were invisible once the prompt was cleared; the X also unticks the file tree.
 export function ContextFiles({
   files,
   onRemove,
@@ -25,24 +17,23 @@ export function ContextFiles({
 }) {
   if (files.length === 0) return null
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-1">
+    <div className="flex flex-col gap-1">
       {files.map(file => (
-        <span
-          key={file}
-          className="inline-flex items-center gap-1 rounded border border-border bg-muted/40 py-0.5 pl-2 pr-1 text-xs"
-          title={file}
-        >
-          <span className="max-w-[14rem] truncate font-mono">{basename(file)}</span>
+        <div key={file} className="flex items-center gap-1.5">
           <button
             type="button"
             disabled={busy}
             onClick={() => onRemove(file)}
+            title={`Remove ${file}`}
             aria-label={`Remove ${file} from context`}
-            className="rounded p-0.5 text-muted-foreground hover:text-red-500 disabled:opacity-50"
+            className="flex h-3.5 w-3.5 items-center justify-center rounded text-muted-foreground hover:text-red-500 disabled:opacity-50"
           >
-            <X className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" />
           </button>
-        </span>
+          <span className="truncate" title={file}>
+            {file}
+          </span>
+        </div>
       ))}
     </div>
   )

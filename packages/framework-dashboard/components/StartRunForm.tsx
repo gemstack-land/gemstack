@@ -258,10 +258,6 @@ export function StartRunForm({
         </div>
       </div>
 
-      {/* Files picked into the Context (#661), from a `#` mention or the file tree — shown so they
-          are visible and removable even after the prompt is cleared. */}
-      <ContextFiles files={contextFiles} onRemove={toggleContext} busy={busy} />
-
       {addingPreset && (
         <PresetCreatePanel
           currentPrompt={prompt}
@@ -284,22 +280,33 @@ export function StartRunForm({
         busy={busy}
       />
 
-      {projects.length > 0 && (
+      {(projects.length > 0 || contextFiles.length > 0) && (
         <div className="mt-3 text-xs text-muted-foreground">
           <DisclosureToggle open={showContext} onToggle={() => setShowContext(s => !s)}>
             Context{context.size > 0 && <span className="text-primary"> · {context.size} selected</span>}
           </DisclosureToggle>
           {showContext && (
-            <div className="mt-1.5 pl-4">
-              <p className="mb-1.5 text-muted-foreground/80">Focus the agent on these repos (it can still reach the rest):</p>
-              <div className="flex flex-col gap-1">
-                {projects.map(p => (
-                  <label key={p.id} className="flex cursor-pointer items-center gap-1.5" title={p.path}>
-                    <input type="checkbox" checked={context.has(p.path)} onChange={() => toggleContext(p.path)} disabled={busy} />
-                    <span className="truncate">{p.name}</span>
-                  </label>
-                ))}
-              </div>
+            <div className="mt-1.5 space-y-2 pl-4">
+              {/* Files picked via a `#` mention or the file tree (#661): removable with an X. */}
+              {contextFiles.length > 0 && (
+                <div>
+                  <p className="mb-1 text-muted-foreground/80">Files</p>
+                  <ContextFiles files={contextFiles} onRemove={toggleContext} busy={busy} />
+                </div>
+              )}
+              {projects.length > 0 && (
+                <div>
+                  <p className="mb-1.5 text-muted-foreground/80">Focus the agent on these repos (it can still reach the rest):</p>
+                  <div className="flex flex-col gap-1">
+                    {projects.map(p => (
+                      <label key={p.id} className="flex cursor-pointer items-center gap-1.5" title={p.path}>
+                        <input type="checkbox" checked={context.has(p.path)} onChange={() => toggleContext(p.path)} disabled={busy} />
+                        <span className="truncate">{p.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

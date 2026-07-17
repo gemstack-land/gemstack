@@ -10,11 +10,10 @@ describe('ContextFiles (#661)', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  test('shows each file by its basename, with the full path as the title', () => {
+  test('lists each file by its path', () => {
     render(<ContextFiles files={['DECISIONS.md', 'css/theme.ts']} onRemove={() => {}} busy={false} />)
     expect(screen.getByText('DECISIONS.md')).toBeTruthy()
-    const nested = screen.getByText('theme.ts')
-    expect(nested.getAttribute('title') ?? nested.closest('[title]')?.getAttribute('title')).toBe('css/theme.ts')
+    expect(screen.getByText('css/theme.ts')).toBeTruthy()
   })
 
   test('removing a chip reports the full path', () => {
