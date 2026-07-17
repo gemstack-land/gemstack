@@ -14,7 +14,7 @@ import { useLoaded } from '../lib/use-async.js'
 import { PromptEditor, type PromptEditorHandle } from './PromptEditor.js'
 import { PresetMenu } from './PresetMenu.js'
 import { PresetCreatePanel } from './PresetCreatePanel.js'
-import { PickerMenu } from './PickerMenu.js'
+import { AgentModelMenu } from './AgentModelMenu.js'
 import { SystemPromptDisclosure } from './SystemPromptDisclosure.js'
 import { OptionToggle, type OptionRow } from './OptionToggle.js'
 import { Button } from './ui/button.js'
@@ -225,9 +225,16 @@ export function StartRunForm({
           onDeleteCustom={id => updatePreferences({ customPresets: customPresets.filter(p => p.id !== id) })}
           onNewPreset={() => setAddingPreset(true)}
         />
-        {/* Agent (#650) + Model (#628): which coding agent drives the run and on what model. */}
-        <PickerMenu value={agent} options={AGENTS} onChange={a => updatePreferences({ agent: a })} busy={busy} title="Coding agent (Claude Code or Codex)" />
-        <PickerMenu value={model} options={MODELS} onChange={m => updatePreferences({ model: m })} busy={busy} title="Model to run on (passed as --model)" />
+        {/* Agent (#650) + Model (#628) in one dropdown, each a submenu. */}
+        <AgentModelMenu
+          agent={agent}
+          agentOptions={AGENTS}
+          onAgentChange={a => updatePreferences({ agent: a })}
+          model={model}
+          modelOptions={MODELS}
+          onModelChange={m => updatePreferences({ model: m })}
+          busy={busy}
+        />
       </div>
 
       {addingPreset && (
