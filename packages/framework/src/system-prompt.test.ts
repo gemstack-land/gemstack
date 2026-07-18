@@ -69,7 +69,7 @@ test('SYSTEM_PROMPT_TEMPLATE carries the #326 sections verbatim', () => {
   ]) {
     assert.ok(SYSTEM_PROMPT_TEMPLATE.includes(section), `missing ${section}`)
   }
-  assert.ok(SYSTEM_PROMPT_TEMPLATE.includes('TODO_FILE: `TODO_<SESSION_NAME>.agent.md`'))
+  assert.ok(SYSTEM_PROMPT_TEMPLATE.includes('TODO_FILE: `TODO_AGENTS.md`')) // #624/#682: the session writes the durable global backlog
   assert.ok(SYSTEM_PROMPT_TEMPLATE.includes('ADD_ANALYSIS_ENTRY: Add entry to the ANLYSIS_RESULT.md list'))
   assert.ok(SYSTEM_PROMPT_TEMPLATE.includes('${{tf.prompt}}'))
   // The whole block is the branch-free doc now: #326 moved the one `tf.params.autopilot`
