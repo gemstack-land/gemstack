@@ -9,7 +9,7 @@ import {
 } from '@gemstack/framework/client'
 import { sendStart } from '../server/control.telefunc.js'
 import { onProjects } from '../server/projects.telefunc.js'
-import { usePreferences, updatePreferences, autopilotEnabled } from '../lib/preferences.js'
+import { usePreferences, updatePreferences, autopilotEnabled, themePreference } from '../lib/preferences.js'
 import { useLoaded } from '../lib/use-async.js'
 import { PromptEditor, type PromptEditorHandle } from './PromptEditor.js'
 import { PresetMenu } from './PresetMenu.js'
@@ -107,6 +107,7 @@ export function StartRunForm({
   const browser = preferences.browser ?? false
   const model = preferences.model ?? '' // #628: empty = the driver's default model
   const agent = preferences.agent ?? 'claude' // #650: which coding agent drives the run
+  const theme = themePreference(preferences) // #725: system (default) / light / dark
   const customPresets = preferences.customPresets ?? [] // #626: the user's own saved prompts
   const [addingPreset, setAddingPreset] = useState(false) // #649: the full-width "New preset" panel
 
@@ -268,7 +269,14 @@ export function StartRunForm({
           onNewPreset={() => setAddingPreset(true)}
         />
         {/* Global options (#314) as a gear-icon checkbox dropdown (#654/#668). */}
-        <OptionsMenu options={mainOptions} ecoOptions={ecoOptions} showEco={eco && !ecoDisabled} busy={busy} />
+        <OptionsMenu
+          options={mainOptions}
+          ecoOptions={ecoOptions}
+          showEco={eco && !ecoDisabled}
+          busy={busy}
+          theme={theme}
+          onThemeChange={t => updatePreferences({ theme: t })}
+        />
         {/* Start run at the end of the row (#668). */}
         <Button
           type="submit"
