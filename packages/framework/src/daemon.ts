@@ -458,6 +458,9 @@ export async function runDaemon(cwd: string, opts: RunDaemonOptions = {}): Promi
   await waitForShutdown(opts.signal)
 
   autoPm.stop()
+  // Stopped here as well as by the dashboard: a broken install serves 503s without ever taking
+  // ownership of the source we handed in, and that poller would go on reading by itself.
+  quota.stop()
   watcher?.stop()
   activityWatcher?.stop()
   await runtime.dispose() // stop live previews (#475) so their dev servers do not outlive us
