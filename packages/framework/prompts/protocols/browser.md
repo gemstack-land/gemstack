@@ -4,4 +4,4 @@ This run has a real Chrome attached, through the `chrome-devtools` tools (`new_p
 
 `WebFetch` is still the right tool for reading an article or a doc page as text. Reach for the browser when fetching the HTML would not answer the question.
 
-Prefer one page and navigate it, rather than opening a new page per URL: the human watching sees the tab you are on.
+Prefer navigating within a single page rather than opening new pages, so the user can more easily watch you navigate.
