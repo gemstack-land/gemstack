@@ -183,12 +183,17 @@ export {
   readRegistry,
   readPreferences,
   writePreferences,
+  readProjectPreferences,
+  writeProjectPreferences,
+  resolvePreferences,
   registryPreferencesStore,
   REGISTRY_FILE,
+  PROJECT_PREFERENCE_KEYS,
   type ProjectRecord,
   type Registry,
   resolveConsumptionLimits,
   type Preferences,
+  type ProjectPreferences,
   type PreferencesStore,
   type CustomPreset,
   type RegistryFs,
@@ -325,6 +330,33 @@ export {
   SUGGEST_TICKETS_TO_WORK_ON_PROMPT_TEMPLATE,
   SUGGEST_TICKETS_TO_WORK_ON_PARAMS,
 } from './suggest-tickets-to-work-on-preset.js'
+export {
+  renderSpikeAndPlanPrompt,
+  SPIKE_AND_PLAN_PRESET_NAME,
+  SPIKE_AND_PLAN_PROMPT_TEMPLATE,
+  SPIKE_AND_PLAN_PARAMS,
+} from './spike-and-plan-preset.js'
+export {
+  renderQuickWinsPrompt,
+  QUICK_WINS_PRESET_NAME,
+  QUICK_WINS_PROMPT_TEMPLATE,
+  QUICK_WINS_PARAMS,
+} from './quick-wins-preset.js'
+export {
+  startAutoPm,
+  AUTO_PM_JOBS,
+  autoPmDecision,
+  quotaHeadroom,
+  DEFAULT_MIN_FREE_PERCENT,
+  DEFAULT_AUTO_PM_INTERVAL_MS,
+  DEFAULT_AUTO_PM_COOLDOWN_MS,
+  type AutoPmInputs,
+  type AutoPmDecision,
+  type AutoPmDeps,
+  type AutoPmLoop,
+  type AutoPmProject,
+  type AutoPmJob,
+} from './auto-pm.js'
 export {
   PRESETS,
   PRESET_DIR,

@@ -8,6 +8,8 @@ import {
   renderUxPrompt,
   renderSuggestNewTicketsPrompt,
   renderSuggestTicketsToWorkOnPrompt,
+  renderSpikeAndPlanPrompt,
+  renderQuickWinsPrompt,
 } from '@gemstack/framework/client'
 import { usePreferences, updatePreferences, autopilotEnabled, themePreference } from '../lib/preferences.js'
 import { useDetectedEditors } from '../lib/editors.js'
@@ -35,6 +37,8 @@ const PRESETS: { id: string; label: string; render: () => string; tooltip?: stri
     render: renderSuggestTicketsToWorkOnPrompt,
     tooltip: 'Add tickets to queue (TODO_AGENTS.md)',
   },
+  { id: 'spike-and-plan', label: 'Spike & plan', render: renderSpikeAndPlanPrompt },
+  { id: 'quick-wins', label: 'Quick wins', render: renderQuickWinsPrompt },
 ]
 
 // The agent + model tree (#650/#656/#658): each agent lists ONLY its own models, since `--model`
