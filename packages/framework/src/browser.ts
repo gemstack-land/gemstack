@@ -38,13 +38,16 @@ const CHROME_PATHS: Record<string, string[]> = {
 /** The binaries to look for on `PATH` when no well-known path exists. */
 const CHROME_BINARIES = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser']
 
+/** Whether a path exists. Injectable so a test does not depend on what the host has installed. */
+export type ExistsFn = (path: string) => boolean
+
 /** First existing match for `name` on `PATH`, or undefined. */
-function onPath(name: string, env: NodeJS.ProcessEnv, platform: string): string | undefined {
+function onPath(name: string, env: NodeJS.ProcessEnv, platform: string, exists: ExistsFn): string | undefined {
   const exts = platform === 'win32' ? ['.exe', '.cmd', ''] : ['']
   for (const dir of (env.PATH ?? '').split(delimiter).filter(Boolean)) {
     for (const ext of exts) {
       const full = join(dir, name + ext)
-      if (existsSync(full)) return full
+      if (exists(full)) return full
     }
   }
   return undefined
@@ -54,16 +57,24 @@ function onPath(name: string, env: NodeJS.ProcessEnv, platform: string): string 
  * The Chrome binary to launch, or undefined when the machine has none. `CHROME_PATH` (and
  * Puppeteer's variable, since a repo that has one usually means it) wins so a user on a
  * non-standard install is not stuck.
+ *
+ * `exists` is a parameter rather than a direct `existsSync` call so the lookup can be tested
+ * against a known filesystem: CI runners have Chrome installed, so a test that assumes the
+ * well-known paths are absent passes on a laptop and fails there.
  */
-export function resolveChromePath(env: NodeJS.ProcessEnv = process.env, platform: string = process.platform): string | undefined {
+export function resolveChromePath(
+  env: NodeJS.ProcessEnv = process.env,
+  platform: string = process.platform,
+  exists: ExistsFn = existsSync,
+): string | undefined {
   for (const override of [env.CHROME_PATH, env.PUPPETEER_EXECUTABLE_PATH]) {
-    if (override && existsSync(override)) return override
+    if (override && exists(override)) return override
   }
   for (const candidate of CHROME_PATHS[platform] ?? []) {
-    if (existsSync(candidate)) return candidate
+    if (exists(candidate)) return candidate
   }
   for (const name of CHROME_BINARIES) {
-    const found = onPath(name, env, platform)
+    const found = onPath(name, env, platform, exists)
     if (found) return found
   }
   return undefined

@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
-import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
@@ -19,23 +18,34 @@ test('chromeLaunchArgs can run headful for local debugging', () => {
   assert.ok(!chromeLaunchArgs(1, '/tmp/p', false).includes('--headless=new'))
 })
 
-test('resolveChromePath prefers an explicit CHROME_PATH over the well-known locations', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'chrome-path-'))
-  const fake = join(dir, 'my-chrome')
-  await writeFile(fake, '')
-  assert.equal(resolveChromePath({ CHROME_PATH: fake }, 'linux'), fake)
-  assert.equal(resolveChromePath({ PUPPETEER_EXECUTABLE_PATH: fake }, 'linux'), fake)
+/**
+ * A filesystem where only `present` exists. Injected so these assertions mean the same thing
+ * on a laptop and on CI — the runners have Chrome at a well-known path, so a test that assumes
+ * "nothing is installed" is really testing the host.
+ */
+const fsWith = (...present: string[]) => (path: string) => present.includes(path)
+
+test('resolveChromePath prefers an explicit CHROME_PATH over the well-known locations', () => {
+  const exists = fsWith('/custom/my-chrome', '/usr/bin/google-chrome')
+  assert.equal(resolveChromePath({ CHROME_PATH: '/custom/my-chrome' }, 'linux', exists), '/custom/my-chrome')
+  assert.equal(resolveChromePath({ PUPPETEER_EXECUTABLE_PATH: '/custom/my-chrome' }, 'linux', exists), '/custom/my-chrome')
 })
 
-test('resolveChromePath ignores an override that does not exist', () => {
-  assert.equal(resolveChromePath({ CHROME_PATH: '/nope/chrome', PATH: '' }, 'linux'), undefined)
+test('resolveChromePath falls through an override that does not exist', () => {
+  assert.equal(resolveChromePath({ CHROME_PATH: '/nope/chrome', PATH: '' }, 'linux', fsWith()), undefined)
+  assert.equal(
+    resolveChromePath({ CHROME_PATH: '/nope/chrome', PATH: '' }, 'linux', fsWith('/usr/bin/chromium')),
+    '/usr/bin/chromium',
+    'a bad override must not hide a browser that is actually installed',
+  )
 })
 
-test('resolveChromePath finds a browser on PATH when no standard install exists', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'chrome-onpath-'))
-  await writeFile(join(dir, 'chromium'), '')
-  assert.equal(resolveChromePath({ PATH: dir }, 'linux'), join(dir, 'chromium'))
+test('resolveChromePath finds a browser on PATH when no standard install exists', () => {
+  assert.equal(resolveChromePath({ PATH: '/opt/bin' }, 'linux', fsWith('/opt/bin/chromium')), '/opt/bin/chromium')
 })
+
+// No Windows PATH-lookup test on purpose: `join` and `delimiter` follow the host, so asserting
+// a `C:\...` result only passes when the test itself runs on Windows.
 
 test('freePort returns a port nothing is listening on', async () => {
   const port = await freePort()
@@ -63,7 +73,7 @@ test('waitForDebugEndpoint gives up rather than hanging the run when Chrome neve
 })
 
 test('a machine with no Chrome resolves to nothing, which is what makes --browser fall back', () => {
-  assert.equal(resolveChromePath({ PATH: '' }, 'linux'), undefined)
+  assert.equal(resolveChromePath({ PATH: '/usr/bin' }, 'linux', fsWith()), undefined)
 })
 
 test('launchSharedBrowser gives up on a binary that never opens the port', async () => {
