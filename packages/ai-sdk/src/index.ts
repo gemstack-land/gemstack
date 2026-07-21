@@ -261,7 +261,7 @@ export { fileSearch, isFileSearchTool, FILE_SEARCH_MARKER, FILE_SEARCH_TOOL_NAME
 export type { FileSearchOptions, FileSearchTool, FileSearchFilter, FileSearchWhereSugar } from './file-search.js'
 
 // Cached Embeddings
-export { CachedEmbeddingAdapter } from './cached-embedding.js'
+export { CachedEmbeddingAdapter, type CachedEmbeddingOptions } from './cached-embedding.js'
 
 // Similarity Search (#B7 Phase 2 — agent tool wrapping ORM vector primitives)
 export { similaritySearch } from './similarity-search.js'
