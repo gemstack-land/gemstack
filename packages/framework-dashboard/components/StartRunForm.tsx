@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import type { ProjectSummary } from '@gemstack/framework'
 import { runOptionsFromPreferences } from '@gemstack/framework/client'
 import { onProjects } from '../server/projects.telefunc.js'
+import { onSystemPromptUser } from '../server/reads.telefunc.js'
 import { usePreferences, updatePreferences, autopilotEnabled } from '../lib/preferences.js'
 import { useStartRun } from '../lib/use-start-run.js'
 import { useLoaded } from '../lib/use-async.js'
@@ -52,6 +53,9 @@ export function StartRunForm({
   // narrows its focus — the picked paths become one `Context:` line in the system prompt.
   const projects = useLoaded<ProjectSummary[]>(onProjects, [], [])
   const [showContext, setShowContext] = useState(false)
+  // The repo's own SYSTEM.md (#872): composition takes it as `user`, but reading it is
+  // Node-bound, so without this read the "entire system prompt" preview under-reported.
+  const userSystemPrompt = useLoaded<string | null>(() => onSystemPromptUser(projectId), null, [projectId])
 
   // The Context set mixes whole repos (registered project paths) and individual files (relative
   // paths). Split out the files so they can be shown + removed, and count each kind separately.
@@ -133,6 +137,7 @@ export function StartRunForm({
         autopilot={autopilot}
         eco={options.eco}
         context={[...context]}
+        user={userSystemPrompt}
         busy={busy}
       />
 
