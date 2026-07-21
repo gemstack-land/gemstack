@@ -41,9 +41,18 @@ function formatTime(ms: number): string {
   return new Date(ms).toLocaleTimeString()
 }
 
-export function EventList({ events, stick = true }: { events: FrameworkEvent[]; stick?: boolean }) {
+export function EventList({
+  events,
+  stick = true,
+  openAt,
+}: {
+  events: FrameworkEvent[]
+  stick?: boolean
+  /** Where a non-following log opens; a replay opens at the outcome (#948), not page one. */
+  openAt?: 'start' | 'end'
+}) {
   return (
-    <MessageScrollerProvider autoScroll={stick} defaultScrollPosition={stick ? 'end' : 'start'}>
+    <MessageScrollerProvider autoScroll={stick} defaultScrollPosition={openAt ?? (stick ? 'end' : 'start')}>
       <MessageScroller className="flex-1">
         <MessageScrollerViewport aria-label="Session output">
           <MessageScrollerContent className="gap-1 p-4 font-mono text-xs">
