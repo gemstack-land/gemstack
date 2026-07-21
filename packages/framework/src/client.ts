@@ -34,7 +34,7 @@ export {
 // What a preset can read beyond its params (#874), so the dashboard can render a preset against
 // the session it was launched from. Pure string work, like the renderers below.
 export { defaultWhat, DEFAULT_WHAT, type PresetRenderContext } from './preset-prompt.js'
-export { presets, type PresetKey } from './preset-catalog.js'
+export { presets, LAUNCHER_PRESETS, type PresetKey } from './preset-catalog.js'
 // The identity + diff both notifier paths run, and the preference defaults both sides read (#627).
 // Pure, so the dashboard shares them rather than keeping copies that drift silently.
 export { interventionKey, pickNewInterventions, activityKey, pickNewActivity } from './dashboard/keys.js'

@@ -351,7 +351,7 @@ export {
   presetContext,
   materializePresets,
 } from './presets.js'
-export { presets, type PresetKey } from './preset-catalog.js'
+export { presets, LAUNCHER_PRESETS, type PresetKey } from './preset-catalog.js'
 export { NOTIFICATION_DEFAULTS, notificationEnabled, discordNotificationEnabled } from './preference-defaults.js'
 export { interventionKey, pickNewInterventions } from './dashboard/keys.js'
 export { definePreset, defaultWhat, DEFAULT_WHAT, type PresetDef, type PresetParam, type PresetRenderContext } from './preset-prompt.js'

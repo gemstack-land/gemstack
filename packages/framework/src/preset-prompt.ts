@@ -48,12 +48,28 @@ export function defaultWhat(ctx: PresetRenderContext = {}): string {
   return renderTemplate(DEFAULT_WHAT, { tf: { ...tfFrom(ctx), params: {} } })
 }
 
-/** A preset's public shape: its run-kind name, its params, its template, and a renderer. */
-export interface PresetDef {
+/** How one preset is declared. Everything that differs between presets, and nothing else. */
+export interface PresetSpec {
+  /** The run-kind name, as the CLI subcommand and the run record use it. */
   name: string
+  /** The prompt template, from `prompts/presets/<stem>.md`. */
+  template: string
+  /** What the one `what` param means. Omit for a preset that scopes itself. */
+  what?: string
+  /**
+   * The launcher button's label. Lives here rather than in the dashboard: it is the preset's
+   * user-facing name, and keeping it in the other package meant a preset's name and its label
+   * could only be kept in step by hand.
+   */
+  label: string
+  /** One line under the label, when the name alone does not say what the preset queues. */
+  tooltip?: string
+}
+
+/** A preset's public shape: how it is declared, plus its resolved params and a renderer. */
+export interface PresetDef extends PresetSpec {
   /** The one `what` param, or empty for a preset that scopes itself. */
   params: readonly PresetParam[]
-  template: string
   /** Render the template, filling `${{ tf.params.what }}`; a blank/omitted `what` falls back to the default. */
   render: (what?: string, ctx?: PresetRenderContext) => string
 }
@@ -74,17 +90,16 @@ export interface PresetDef {
  * `${{ }}` inside it reached the prompt as literal text. Rendering it against the same context is
  * what lets the default depend on the session the preset was launched from.
  */
-export function definePreset(name: string, template: string, whatDescription?: string): PresetDef {
+export function definePreset(spec: PresetSpec): PresetDef {
+  const { template, what } = spec
   // Paramless: nothing to fill, so the template is the prompt.
-  if (whatDescription === undefined) return { name, template, params: [], render: () => template }
-  const params: readonly PresetParam[] = [{ name: 'what', default: DEFAULT_WHAT, description: whatDescription }]
+  if (what === undefined) return { ...spec, params: [], render: () => template }
   return {
-    name,
-    params,
-    template,
-    render: (what, ctx = {}) => {
+    ...spec,
+    params: [{ name: 'what', default: DEFAULT_WHAT, description: what }],
+    render: (value, ctx = {}) => {
       // The default renders with an empty `params`: it can read the session, but not itself.
-      const target = what?.trim() || defaultWhat(ctx)
+      const target = value?.trim() || defaultWhat(ctx)
       return renderTemplate(template, { tf: { ...tfFrom(ctx), params: { what: target } } })
     },
   }

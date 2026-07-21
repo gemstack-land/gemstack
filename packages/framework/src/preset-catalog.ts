@@ -36,28 +36,28 @@ export const presets = {
    * scope -> build scaffolding. `showMultiSelect()` + `<AWAIT>` becomes a live turn-boundary
    * gate (#339/#340) the dashboard resolves.
    */
-  research: definePreset('research', PRESETS_RESEARCH, 'What to measure problem variability of'),
+  research: definePreset({ name: 'research', template: PRESETS_RESEARCH, what: 'What to measure problem variability of', label: 'Research' }),
 
   /**
    * [Maintainability] (#326): deliberately minimal, so its performance can be judged before a
    * more explicit prompt is written. Keep it in sync with the issue rather than growing it here.
    */
-  maintainability: definePreset('maintainability', PRESETS_MAINTAINABILITY, 'What to refactor for maintainability'),
+  maintainability: definePreset({ name: 'maintainability', template: PRESETS_MAINTAINABILITY, what: 'What to refactor for maintainability', label: 'Maintainability' }),
 
   /** [Readability] (#326): the reader's-eye pass — seams, altitude, and one commit per refactor. */
-  readability: definePreset('readability', PRESETS_READABILITY, 'What to refactor for readability'),
+  readability: definePreset({ name: 'readability', template: PRESETS_READABILITY, what: 'What to refactor for readability', label: 'Readability' }),
 
   /** [Security audit] (#326). */
-  securityAudit: definePreset('security-audit', PRESETS_SECURITY_AUDIT, 'What to security-audit'),
+  securityAudit: definePreset({ name: 'security-audit', template: PRESETS_SECURITY_AUDIT, what: 'What to security-audit', label: 'Security audit' }),
 
   /** [UX review] (#326). */
-  ux: definePreset('ux', PRESETS_UX, 'What to review the UX of'),
+  ux: definePreset({ name: 'ux', template: PRESETS_UX, what: 'What to review the UX of', label: 'UX' }),
 
   /**
    * [Maintenance] (#882): the periodic codebase sweep. Note `${{ }}` fragments cannot nest (the
    * scanner stops at the first `}}`), which is why its target is a plain blank.
    */
-  maintenance: definePreset('maintenance', PRESETS_MAINTENANCE, 'What to analyze for refactor opportunities'),
+  maintenance: definePreset({ name: 'maintenance', template: PRESETS_MAINTENANCE, what: 'What to analyze for refactor opportunities', label: 'Maintenance', tooltip: 'Queue maintainability + security work per codebase subset (TODO_AGENTS.md)' }),
 
   // ---- Paramless: each of these scopes itself to the repo's own tickets, plans or queue, so
   // there is no blank for a user to fill.
@@ -66,7 +66,7 @@ export const presets = {
    * [Market research] (#874). Its prompt defines `<SESSION_NAME>` itself rather than reading
    * `${{ tf.session_name }}`: the session name does not exist yet when a preset renders.
    */
-  marketResearch: definePreset('market-research', PRESETS_MARKET_RESEARCH),
+  marketResearch: definePreset({ name: 'market-research', template: PRESETS_MARKET_RESEARCH, label: 'Market research' }),
 
   /**
    * [Quick wins] (#773): harvest the cheap work out of the plans we already have. Reads the
@@ -74,23 +74,23 @@ export const presets = {
    * This is the half of auto PM that closes the loop: [Spike & plan] turns tickets into plans,
    * this turns plans into queued work, and the backlog loop drains the queue.
    */
-  quickWins: definePreset('quick-wins', PRESETS_QUICK_WINS),
+  quickWins: definePreset({ name: 'quick-wins', template: PRESETS_QUICK_WINS, label: 'Quick wins' }),
 
   /** [Spike & plan] (#685): turn tickets into costed plans. */
-  spikeAndPlan: definePreset('spike-and-plan', PRESETS_SPIKE_AND_PLAN),
+  spikeAndPlan: definePreset({ name: 'spike-and-plan', template: PRESETS_SPIKE_AND_PLAN, label: 'Spike & plan' }),
 
   /** [Suggest new tickets] (#683): the dashboard prefills this one line and the user edits it freely. */
-  suggestNewTickets: definePreset('suggest-new-tickets', PRESETS_SUGGEST_NEW_TICKETS),
+  suggestNewTickets: definePreset({ name: 'suggest-new-tickets', template: PRESETS_SUGGEST_NEW_TICKETS, label: 'Suggest new tickets' }),
 
   /**
    * [Suggest tickets to work on] (#698): the gated sibling of the triage pair. It ends in
    * `<AWAIT>`, so it is deliberately kept out of {@link AUTO_PM_JOBS} — firing it unattended
    * would wedge a run against a human who is not there.
    */
-  suggestTicketsToWorkOn: definePreset('suggest-tickets-to-work-on', PRESETS_SUGGEST_TICKETS_TO_WORK_ON),
+  suggestTicketsToWorkOn: definePreset({ name: 'suggest-tickets-to-work-on', template: PRESETS_SUGGEST_TICKETS_TO_WORK_ON, label: 'Suggest tickets to work on', tooltip: 'Add tickets to queue (TODO_AGENTS.md)' }),
 
   /** [Drain queue] (#852): work the entries already on `TODO_AGENTS.md`. */
-  drainQueue: definePreset('drain-queue', PRESETS_DRAIN_QUEUE),
+  drainQueue: definePreset({ name: 'drain-queue', template: PRESETS_DRAIN_QUEUE, label: 'Drain queue' }),
 
   /**
    * [Do quick-win work] (#891) and [Do consensual work] (#892): read `tickets/*.md`, pick the ones
@@ -104,9 +104,33 @@ export const presets = {
    * already exists. That collision guard is what makes them safe to fire on a schedule: a triage
    * still in flight owns the branch, so the next firing does nothing instead of triaging twice.
    */
-  triageQuick: definePreset('triage-quick', PRESETS_TRIAGE_QUICK),
-  triageConsensual: definePreset('triage-consensual', PRESETS_TRIAGE_CONSENSUAL),
+  triageQuick: definePreset({ name: 'triage-quick', template: PRESETS_TRIAGE_QUICK, label: 'Do quick-win work', tooltip: 'Add `tickets/*.md` to queue (TODO_AGENTS.md), only quick-win and consensual tickets' }),
+  triageConsensual: definePreset({ name: 'triage-consensual', template: PRESETS_TRIAGE_CONSENSUAL, label: 'Do consensual work', tooltip: 'Add `tickets/*.md` to queue (TODO_AGENTS.md), only significant (no quick-wins) and consensual tickets' }),
 } as const satisfies Record<string, PresetDef>
 
 /** The presets by key, e.g. `quickWins`. */
 export type PresetKey = keyof typeof presets
+
+/**
+ * The presets the launcher offers, in the order it shows them.
+ *
+ * One list rather than a `launcher: true` flag on each row: membership and order are the same
+ * decision, and a flag would have stated half of it while the order lived somewhere else. It is
+ * also the answer to "which presets are user-facing" — `drainQueue` is absent because only the
+ * daemon fires it, which previously had nothing marking it internal.
+ */
+export const LAUNCHER_PRESETS: readonly PresetDef[] = [
+  presets.research,
+  presets.readability,
+  presets.maintainability,
+  presets.securityAudit,
+  presets.ux,
+  presets.suggestNewTickets,
+  presets.suggestTicketsToWorkOn,
+  presets.spikeAndPlan,
+  presets.quickWins,
+  presets.marketResearch,
+  presets.maintenance,
+  presets.triageQuick,
+  presets.triageConsensual,
+]
