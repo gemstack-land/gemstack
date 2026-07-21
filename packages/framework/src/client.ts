@@ -4,6 +4,7 @@
 // sandbox, node:fs/http, …) into the browser bundle. Types come from the root entry.
 export { AGENTS, AGENT_LABELS, isAgentName, agentForDriver, type AgentName } from './agent-names.js'
 export { formatFrameworkEvent } from './terminal.js'
+export { formatBytes } from './format-bytes.js'
 export { pickedIds } from './events.js'
 export {
   loopStatus,

@@ -1,4 +1,5 @@
-import { findRun, readLiveMetas, readAllRuns, loadRunEvents, listWorktreeDirs, worktreeSize, isSafeRunId, type RunMeta } from '../store/index.js'
+import { findRun, readLiveMetas, readAllRuns, loadRunEvents, worktreeSize, isSafeRunId, type RunMeta } from '../store/index.js'
+import { listProjectWorktrees } from '../worktrees.js'
 import { readLogs, type LogEntry } from '../logs.js'
 import { readDocs, type WorkspaceDoc } from '../dashboard/docs.js'
 import { readTickets, type WorkspaceTicket } from '../dashboard/tickets.js'
@@ -66,12 +67,9 @@ export async function onRuns(projectId: string): Promise<RunMeta[]> {
 export async function onRetainedWorktrees(projectId: string): Promise<string[]> {
   const cwd = await resolveProjectPath(projectId)
   if (!cwd) return []
-  const [names, live] = await Promise.all([
-    listWorktreeDirs(cwd).catch(() => []),
-    readLiveMetas(cwd).catch(() => []),
-  ])
-  const running = new Set(live.filter(run => run.status === 'running').map(run => run.id))
-  return names.filter(id => !running.has(id)).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0))
+  // The CLI's `framework worktrees` builds the same view; one list, two surfaces (#752).
+  const rows = await listProjectWorktrees(cwd, { sizes: false }).catch((): never[] => [])
+  return rows.filter(row => !row.live).map(row => row.runId)
 }
 
 /**
