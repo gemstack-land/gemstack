@@ -159,6 +159,16 @@ export interface OpenStoreOptions {
   /** The wall-clock start, ISO. Injectable so tests are deterministic. */
   now?: string
   /**
+   * Reads the current time for each appended event, so {@link RunMeta.updatedAt} tracks the last
+   * event rather than the run's start. Injectable so tests can step it deterministically.
+   *
+   * Separate from {@link now} on purpose: `now` is when the run *opened*, and a single timestamp
+   * cannot answer both questions. Reusing it for appends froze `updatedAt` at `startedAt` for a
+   * run's whole life, which every reader that orders by recency (the overview, the activity feed,
+   * the interventions queue) silently sorted on.
+   */
+  clock?: () => string
+  /**
    * The run's intent (its prompt / request) shown in the dashboard's Runs list. A build run
    * later refines this via its `bootstrap` scope event; a `prompt`/`research` run has no scope
    * step, so seeding it here is the only way its row shows the prompt instead of "(no prompt)".
@@ -320,7 +330,7 @@ export class RunStore {
   private constructor(
     private readonly fs: StoreFs,
     readonly dir: string,
-    private readonly now: string,
+    private readonly clock: () => string,
     startMeta: RunMeta,
   ) {
     this.meta = startMeta
@@ -347,7 +357,8 @@ export class RunStore {
     const now = opts.now ?? new Date().toISOString()
     await fs.mkdir(dir)
     const owner = opts.owner ?? { pid: process.pid, host: hostname() }
-    const store = new RunStore(fs, dir, now, freshMeta(now, opts.intent, owner, opts.id))
+    const clock = opts.clock ?? (() => new Date().toISOString())
+    const store = new RunStore(fs, dir, clock, freshMeta(now, opts.intent, owner, opts.id))
     if (opts.continueRun) {
       // Reopen: the log stays, the row keeps its original intent, and this process takes ownership
       // so a liveness probe (#716) reads the run as alive rather than as an orphan.
@@ -374,7 +385,7 @@ export class RunStore {
    * swallowed (persistence is best-effort — it must never break a live run).
    */
   append(event: FrameworkEvent): Promise<void> {
-    this.meta = applyEventToMeta(this.meta, event, this.now)
+    this.meta = applyEventToMeta(this.meta, event, this.clock())
     this.tail = this.tail
       .then(() => this.fs.append(this.eventsPath, JSON.stringify(event) + '\n'))
       .then(() => this.writeMeta())
