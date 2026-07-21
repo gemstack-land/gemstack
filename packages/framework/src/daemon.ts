@@ -21,6 +21,7 @@ import {
   pruneWorktrees,
   readLiveMetas,
   isSafeRunId,
+  resolveRunCheckout,
   readSuspendedRuns,
   writeSuspendedRuns,
   resumableRuns,
@@ -581,20 +582,6 @@ function createProjectRuntime({ cwd, env, binPath }: ProjectRuntimeOptions): Pro
     if (!id || id === homeId) return cwd
     const records = await listProjects(undefined, env).catch(() => [])
     return records.find(record => record.id === id)?.path
-  }
-
-  /**
-   * The checkout a *session* is working in (#797): its own worktree, else the project's tree.
-   * Same resolution the read and control RPCs use — live metas first, then the directory, which
-   * exists before the run has written its `run.json`.
-   */
-  const resolveRunCheckout = async (projectCwd: string, runId: string | undefined): Promise<string> => {
-    if (!runId || !isSafeRunId(runId)) return projectCwd
-    const live = await readLiveMetas(projectCwd).catch(() => [])
-    const running = live.find(run => run.id === runId)?.cwd
-    if (running) return running
-    const path = worktreePath(projectCwd, runId)
-    return (await stat(path).then(s => s.isDirectory()).catch(() => false)) ? path : projectCwd
   }
 
   /**
