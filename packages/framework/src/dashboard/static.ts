@@ -2,6 +2,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { join, normalize, sep } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { contentTypeFor } from './content-type.js'
+import { requestPathname } from '../request-path.js'
 
 // Serve the prerendered dashboard bundle (#405). The new dashboard is a Vike `ssr:false`
 // SPA prerendered to a static `index.html` + `assets/**`, so the daemon serves it as
@@ -30,9 +31,10 @@ function tryDecode(pathname: string): string {
  * `index.html` rather than reading outside the bundle.
  */
 export async function serveClientBundle(req: IncomingMessage, res: ServerResponse, dir: string): Promise<void> {
-  const { pathname } = new URL(req.url ?? '/', 'http://localhost')
-  // A malformed escape (`/%zz`) must not throw: this runs void-dispatched, so an
-  // exception here would be an unhandled rejection that takes the daemon down (#938).
+  // Neither an unparseable request target nor a malformed escape (`/%zz`) may throw: this
+  // runs void-dispatched, so an exception here would be an unhandled rejection that takes
+  // the daemon down (#938). Both fall back to the SPA shell like any other unknown path.
+  const pathname = requestPathname(req) ?? '/'
   const rel = tryDecode(pathname).replace(/^\/+/, '')
   const root = normalize(dir)
   const candidate = normalize(join(root, rel))

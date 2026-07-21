@@ -6,6 +6,7 @@ import { defaultQuotaSource, type QuotaSource } from './quota.js'
 import { serveClientBundle } from './static.js'
 import { BROWSER_PROXY_PREFIX, handleBrowserProxy } from './browser-proxy.js'
 import { makeTelefuncMount } from './telefunc-serve.js'
+import { requestPathname } from '../request-path.js'
 import type { AddProjectResult, PreviewResult, PreviewStatus, StartRunKind, StartRunOptions, StartRunResult } from './types.js'
 import type { PreviewHandlers } from './telefunc-serve.js'
 
@@ -122,7 +123,11 @@ export function startDashboard(opts: DashboardOptions = {}): Promise<Dashboard> 
   })
 
   const server = createServer((req, res) => {
-    const { pathname } = new URL(req.url ?? '/', 'http://localhost')
+    const pathname = requestPathname(req)
+    if (pathname === undefined) {
+      res.writeHead(400, { 'content-type': 'text/plain' }).end('bad request')
+      return
+    }
     if (pathname === '/_telefunc' || pathname.startsWith('/_telefunc/')) {
       void telefuncMount(req, res)
       return
