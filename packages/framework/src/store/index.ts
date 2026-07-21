@@ -7,6 +7,7 @@ export {
   readAllRuns,
   findRun,
   readEventLog,
+  isPidAlive,
   readLiveMeta,
   reconcileOrphanedRuns,
   loadRunEvents,
