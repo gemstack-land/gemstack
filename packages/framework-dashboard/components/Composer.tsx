@@ -92,12 +92,16 @@ export const Composer = forwardRef<ComposerHandle, {
   /** Off inside a session (#831): a session is bound to the agent it started with, so the select
    *  would only ever rewrite the *next* session's default. Chosen at the launcher instead. */
   showAgentModel?: boolean | undefined
+  /** Inside a running/finished session (#833): every run option is baked in at spawn, so the
+   *  gear drops them (keeping the genuinely global editor pick) and the "In play" strip goes —
+   *  both would otherwise read as controls over *this* session that only rewrite the next one. */
+  inSession?: boolean | undefined
   /** The session this composer sits in, if any (#874): a preset launched from a run page targets
    *  that session by default, instead of the whole codebase. Absent at the launcher, where no
    *  session exists yet. */
   sessionName?: string | undefined
 }>(function Composer(
-  { files, addContext, removeContext, onSubmit, onPromptChange, onPreset, busy, submitLabel, submitBusyLabel, placeholder, showShortcutHint = false, compact = false, showAgentModel = true, sessionName },
+  { files, addContext, removeContext, onSubmit, onPromptChange, onPreset, busy, submitLabel, submitBusyLabel, placeholder, showShortcutHint = false, compact = false, showAgentModel = true, inSession = false, sessionName },
   ref,
 ) {
   const [prompt, setPrompt] = useState('')
@@ -136,6 +140,8 @@ export const Composer = forwardRef<ComposerHandle, {
   const browser = preferences.browser ?? false
   const model = preferences.model ?? '' // #628: empty = the driver's default model
   const agent = preferences.agent ?? 'claude' // #650: which coding agent drives the run
+  // The stored agent as a display name; an unknown stored value falls back to Claude Code.
+  const agentLabel = AGENT_LABELS[AGENTS.includes(agent as AgentName) ? (agent as AgentName) : 'claude']
   const customPresets = preferences.customPresets ?? [] // #626: the user's own saved prompts
   const editor = preferences.editor // #727: preferred editor; undefined = $FRAMEWORK_EDITOR / code
   const detectedEditors = useDetectedEditors() // #727: editors installed on the daemon's machine
@@ -193,7 +199,8 @@ export const Composer = forwardRef<ComposerHandle, {
   // The Global options as one table (#314). Autopilot's default-on lives in `autopilotEnabled`; Eco
   // is disabled + dimmed under Vanilla; the Eco sub-drops show only while Eco is on.
   const mainOptions: OptionRow[] = [
-    { key: 'transparent', label: 'Transparent', description: 'Raw Claude Code — turns the whole framework off.', title: 'Fully transparent (#625): run the agent exactly like plain Claude Code, with no framework system prompt, controls, dashboard, guard, or TODO loop. Overrides the options below.', checked: transparent },
+    // Named for the agent actually selected (#948): under Codex, "Raw Claude Code" was a lie.
+    { key: 'transparent', label: 'Transparent', description: `Raw ${agentLabel} — turns the whole framework off.`, title: `Fully transparent (#625): run the agent exactly like plain ${agentLabel}, with no framework system prompt, controls, dashboard, guard, or TODO loop. Overrides the options below.`, checked: transparent },
     // Says only what it does (#801): the maintenance stance it used to relax left the system prompt
     // with that section (#556), so the countdown is the whole feature.
     { key: 'autopilot', label: 'Autopilot', description: 'Auto-accepts the recommended choice after a countdown.', title: 'Auto-accept the recommended choice after a countdown, instead of waiting for you to pick', checked: autopilot && !transparent, disabled: transparent, disabledReason: 'off while Transparent is on' },
@@ -265,13 +272,16 @@ export const Composer = forwardRef<ComposerHandle, {
         />
       )}
       <OptionsMenu
-        options={mainOptions}
-        ecoOptions={ecoOptions}
-        showEco={eco && !ecoDisabled}
+        // In-session (#833): the run options were baked into the session at spawn, so offering
+        // them here only rewrote the next session's defaults while reading as session state.
+        options={inSession ? [] : mainOptions}
+        ecoOptions={inSession ? [] : ecoOptions}
+        showEco={!inSession && eco && !ecoDisabled}
         busy={busy}
         editor={editor}
         editors={detectedEditors}
         onEditorChange={e => updatePreferences({ editor: e ?? '' })}
+        {...(inSession ? { label: 'Preferences' } : {})}
       />
     </>
   )
@@ -329,8 +339,9 @@ export const Composer = forwardRef<ComposerHandle, {
       </div>
 
       {/* What the session resolves to, without opening the gear (#842). Off in the compact row
-          above, which is one line on purpose. */}
-      <ResolvedOptions options={mainOptions} sources={sources} fileConfig={fileConfig} />
+          above, which is one line on purpose, and in-session (#833), where it described the
+          *global* options rather than the ones this session actually runs with. */}
+      {!inSession && <ResolvedOptions options={mainOptions} sources={sources} fileConfig={fileConfig} />}
 
       {addingPreset && (
         <PresetCreatePanel

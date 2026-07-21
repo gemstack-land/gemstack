@@ -88,6 +88,7 @@ export function RunResumeChat({
         submitLabel="Send"
         submitBusyLabel="Resuming…"
         showAgentModel={false}
+        inSession
         sessionName={sessionName}
         placeholder="Message the session to continue it…  ( / commands · < tags · @ projects · # files )"
       />

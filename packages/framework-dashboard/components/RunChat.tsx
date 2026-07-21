@@ -68,6 +68,7 @@ export function RunChat({
         submitLabel="Send"
         submitBusyLabel="Sending…"
         showAgentModel={false}
+        inSession
         sessionName={sessionName}
         placeholder="Message the session…  ( / commands · < tags · @ projects · # files )"
       />

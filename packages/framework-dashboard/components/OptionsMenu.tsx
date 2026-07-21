@@ -70,12 +70,16 @@ export function OptionsMenu({
   editor,
   editors,
   onEditorChange,
+  label = 'Session options',
 }: {
   options: OptionRow[]
   ecoOptions: OptionRow[]
   /** Whether Eco's sub-drops apply right now (Eco on and not disabled by Vanilla). */
   showEco: boolean
   busy: boolean
+  /** The trigger's name. In-session composers pass no run options (#833), so theirs says
+   *  "Preferences" rather than promising session control it does not have. */
+  label?: string
   /** The current preferred-editor CLI (#727), or undefined for the default. */
   editor: string | undefined
   /** The editors detected on the daemon's machine; empty on a public host. */
@@ -93,8 +97,8 @@ export function OptionsMenu({
       <DropdownMenuTrigger
         type="button"
         disabled={busy}
-        title={activeCount > 0 ? `Session options — ${activeCount} on` : 'Session options'}
-        aria-label="Session options"
+        title={activeCount > 0 ? `${label} — ${activeCount} on` : label}
+        aria-label={label}
         className={cn(buttonVariants({ variant: 'outline', size: 'icon-sm' }), 'relative')}
       >
         <Settings className="h-4 w-4" />
