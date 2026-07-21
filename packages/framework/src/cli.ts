@@ -1490,6 +1490,30 @@ export async function runCli(argv: string[], io: CliIO = defaultIO): Promise<num
     failLabel,
   })
 
+  // The options both run paths pass through unchanged: who the agent is, what it may spend, what
+  // it reads, and who can answer it. They were written out twice, thirteen conditional spreads
+  // each, so a new one had to be added to both by hand — and a run started as a build and a run
+  // started as a prompt are the same run in every respect but the scaffolding around the prompt.
+  const sharedRunOptions = {
+    driver,
+    cwd,
+    onEvent,
+    signal: controller.signal,
+    ...(requestChoice ? { requestChoice } : {}),
+    ...chatQueue,
+    ...(recordMessage ? { recordMessage } : {}),
+    ...(opts.model ? { model: opts.model } : {}),
+    ...(opts.maxCost ? { budgetUsd: opts.maxCost } : {}),
+    ...(guard ? { consumptionGate: guard.gate } : {}),
+    ...(promptConfig.userSystemPrompt ? { systemPrompt: promptConfig.userSystemPrompt } : {}),
+    ...(promptConfig.noBuiltinPrompt ? { antiLazyPill: false } : {}),
+    ...(browserAttached ? { browser: true } : {}),
+    ...(transparent ? { transparent: true } : {}),
+    ...(promptConfig.eco ? { eco: promptConfig.eco } : {}),
+    ...(opts.context.length ? { context: opts.context } : {}),
+    ...(sessionLink ? { sessionLink } : {}),
+  }
+
   // `framework research [what]` (#331) and `framework prompt <text>` (#353): the
   // direct prompt path — run one prompt through runPrompt, which honors its gates
   // (#337/#339) but skips the scope -> build scaffolding entirely.
@@ -1502,28 +1526,11 @@ export async function runCli(argv: string[], io: CliIO = defaultIO): Promise<num
   // Shares all the wiring above (dashboard, store, control channel, budget).
   const isResearch = opts.research && !transparent
   if (opts.research || opts.directPrompt || transparent) {
-    const { userSystemPrompt, noBuiltinPrompt, eco } = promptConfig
     return settleRun(epilogue(isResearch ? 'research' : 'prompt session'), async () => {
       await runPrompt({
+        ...sharedRunOptions,
         prompt: isResearch ? presets.research.render(intent) : intent,
-        driver,
-        cwd,
-        onEvent,
-        signal: controller.signal,
-        ...(requestChoice ? { requestChoice } : {}),
-        ...chatQueue,
-        ...(recordMessage ? { recordMessage } : {}),
-        ...(opts.model ? { model: opts.model } : {}),
-        ...(opts.maxCost ? { budgetUsd: opts.maxCost } : {}),
-        ...(guard ? { consumptionGate: guard.gate } : {}),
-        ...(userSystemPrompt ? { systemPrompt: userSystemPrompt } : {}),
-        ...(noBuiltinPrompt ? { antiLazyPill: false } : {}),
-        ...(browserAttached ? { browser: true } : {}),
-        ...(transparent ? { transparent: true } : {}),
-        ...(eco ? { eco } : {}),
-        ...(opts.context.length ? { context: opts.context } : {}),
         ...(modeList.includes('autopilot') ? { autopilot: true } : {}),
-        ...(sessionLink ? { sessionLink } : {}),
         ...(opts.resumeSession ? { resumeSessionId: opts.resumeSession } : {}),
       })
       return {
@@ -1569,23 +1576,12 @@ export async function runCli(argv: string[], io: CliIO = defaultIO): Promise<num
       }
     : undefined
 
-  const { userSystemPrompt, noBuiltinPrompt, eco } = promptConfig
-
   const runOpts: RunFrameworkOptions = {
+    ...sharedRunOptions,
     intent,
     scope: opts.scope,
-    driver,
-    cwd,
-    onEvent,
     signals,
-    signal: controller.signal,
-    ...(requestChoice ? { requestChoice } : {}),
-    ...chatQueue,
-    ...(recordMessage ? { recordMessage } : {}),
-    ...(opts.model ? { model: opts.model } : {}),
     ...(opts.maxPasses ? { maxPasses: opts.maxPasses } : {}),
-    ...(opts.maxCost ? { budgetUsd: opts.maxCost } : {}),
-    ...(guard ? { consumptionGate: guard.gate } : {}),
     ...(opts.todoLoop && !transparent ? {} : { todoLoop: false }),
     ...(opts.todoMaxItems ? { todoMaxItems: opts.todoMaxItems } : {}),
     ...(deploy ? { deploy } : {}),
@@ -1597,13 +1593,6 @@ export async function runCli(argv: string[], io: CliIO = defaultIO): Promise<num
     ...(domainPreset ? { preset: domainPreset } : {}),
     ...(modeList.length ? { modes: modeList } : {}),
     ...(buildEvent ? { buildEvent } : {}),
-    ...(userSystemPrompt ? { systemPrompt: userSystemPrompt } : {}),
-    ...(noBuiltinPrompt ? { antiLazyPill: false } : {}),
-    ...(browserAttached ? { browser: true } : {}),
-    ...(transparent ? { transparent: true } : {}),
-    ...(eco ? { eco } : {}),
-    ...(opts.context.length ? { context: opts.context } : {}),
-    ...(sessionLink ? { sessionLink } : {}),
   }
 
   return settleRun(epilogue('session'), async () => {
