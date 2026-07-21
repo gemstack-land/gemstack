@@ -122,8 +122,33 @@ async function resolveClient(
   const sdkTransport = await buildTransport(transport)
 
   const client = new Client(CLIENT_INFO)
-  await (client as unknown as { connect(t: unknown): Promise<void> }).connect(sdkTransport)
+  await connectOrClose(client as unknown as ConnectableClient, sdkTransport)
   return { client, ownsClient: true }
+}
+
+/** The slice of the SDK `Client` the connect path needs. */
+interface ConnectableClient {
+  connect(t: unknown): Promise<void>
+  close():             Promise<void>
+}
+
+/**
+ * Connect, tearing down the transport when the handshake fails. The SDK does not
+ * clean up if `transport.start()` rejects, and only fires an unawaited `close()`
+ * on an initialize failure, so a stdio subprocess or HTTP session can outlive a
+ * failed `connect()` and a retrying caller leaks one per attempt.
+ *
+ * @internal Exported for tests. Not re-exported from the package entry.
+ */
+export async function connectOrClose(client: ConnectableClient, sdkTransport: unknown): Promise<void> {
+  try {
+    await client.connect(sdkTransport)
+  } catch (err) {
+    await safeClose(client)
+    // Also close the transport directly: on an early failure the client may not own it yet.
+    await safeCloseTransport(sdkTransport)
+    throw err
+  }
 }
 
 async function buildTransport(transport: McpClientTransport): Promise<unknown> {
@@ -151,8 +176,14 @@ async function buildTransport(transport: McpClientTransport): Promise<unknown> {
   throw new Error(`mcpClientTools: unsupported transport shape: ${typeof transport}`)
 }
 
-async function safeClose(client: MinimalClient): Promise<void> {
+async function safeClose(client: { close(): Promise<void> }): Promise<void> {
   try { await client.close() } catch { /* best-effort */ }
+}
+
+async function safeCloseTransport(sdkTransport: unknown): Promise<void> {
+  const close = (sdkTransport as { close?: () => unknown } | null | undefined)?.close
+  if (typeof close !== 'function') return
+  try { await close.call(sdkTransport) } catch { /* best-effort */ }
 }
 
 function buildTool(

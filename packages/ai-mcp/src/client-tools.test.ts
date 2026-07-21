@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
-import { mcpClientTools } from './client-tools.js'
+import { mcpClientTools, connectOrClose } from './client-tools.js'
 import { toolToSchema } from '@gemstack/ai-sdk'
 
 // ─── Helpers ─────────────────────────────────────────────
@@ -161,6 +161,36 @@ describe('mcpClientTools (caller-owned client)', () => {
       const result = await runTool(longTask, { steps: 2 })
       assert.strictEqual(result, 'done in 2 steps')
     } finally { await cleanup() }
+  })
+})
+
+// ─── Connect failures (#978) ─────────────────────────────
+
+describe('mcpClientTools (connect failure)', () => {
+  it('closes the client and the transport when connect() rejects', async () => {
+    let transportClosed = 0
+    let clientClosed    = 0
+    const transport = { close: async () => { transportClosed++ } }
+    const client = {
+      connect: async () => { throw new Error('handshake failed') },
+      close:   async () => { clientClosed++ },
+    }
+
+    await assert.rejects(connectOrClose(client, transport), /handshake failed/)
+    assert.equal(transportClosed, 1, 'transport was left open after a failed connect()')
+    assert.equal(clientClosed, 1, 'client was left open after a failed connect()')
+  })
+
+  it('a client close() that also throws does not mask the connect error', async () => {
+    let transportClosed = 0
+    const transport = { close: async () => { transportClosed++ } }
+    const client = {
+      connect: async () => { throw new Error('protocol mismatch') },
+      close:   async () => { throw new Error('close blew up') },
+    }
+
+    await assert.rejects(connectOrClose(client, transport), /protocol mismatch/)
+    assert.equal(transportClosed, 1)
   })
 })
 
