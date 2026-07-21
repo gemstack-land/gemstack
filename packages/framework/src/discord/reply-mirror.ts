@@ -89,11 +89,12 @@ interface Mirrored extends RunBinding {
 export const REPLY_POLL_MS = 3_000
 
 /**
- * How many consecutive unresolvable polls release a binding (#941). More than one on purpose:
- * a run bound the instant it started may not have its live meta on disk for the first tick or
- * two, and dropping it then would silently unmirror a live chat.
+ * How many consecutive unresolvable polls release a binding (#941). Generous on purpose: a
+ * run bound the instant it started has no live meta on disk until its child process boots and
+ * writes one, and dropping the binding during that window would silently unmirror a live chat.
+ * The cost of waiting longer is only how late a dead binding's poll IO stops.
  */
-export const UNBIND_AFTER_MISSES = 5
+export const UNBIND_AFTER_MISSES = 10
 
 export function startDiscordReplyMirror(opts: ReplyMirrorOptions): DiscordReplyMirror {
   const bound = new Map<string, Mirrored>()
