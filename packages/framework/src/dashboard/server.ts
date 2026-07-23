@@ -203,6 +203,8 @@ function listenDashboard(server: Server, host: string, port: number, close: () =
 }
 
 function closeServer(server: Server): Promise<void> {
+  // Force-close keep-alive + streaming sockets (e.g. an open /_relay/events body, #1067) so close() resolves instead of waiting on them.
+  server.closeAllConnections()
   return new Promise(resolvePromise => server.close(() => resolvePromise()))
 }
 
