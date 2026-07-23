@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Framework — Autonomous AI</title>
+<meta name="description" content="Make the important decisions, let AI do the rest. The Framework turns AI agents into autonomous teammates that handle work end-to-end — while you stay in control of key decisions.">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<meta property="og:title" content="The Framework — Autonomous AI">
+<meta property="og:description" content="Make the important decisions, let AI do the rest.">
+<meta property="og:url" content="https://the-framework.ai/">
+<meta property="og:type" content="website">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+  html { scroll-behavior: smooth; }
+  * { transition: border-color 0.15s, background-color 0.15s, color 0.15s; }
+  h1, h2, h3 { text-wrap: balance; }
+  body { margin: 0; background: #2d353b; color: #d3c6aa; font-family: 'IBM Plex Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #7fbbb3; text-decoration: none; }
+  a:hover { color: #83c092; }
+  ::selection { background: #475258; }
+  section[id] { scroll-margin-top: 76px; }
+  [data-section-nav]::-webkit-scrollbar { display: none; }
+  @keyframes strike { from { transform: scaleX(0.1); } to { transform: scaleX(1); } }
+  @media (max-width: 480px) { [data-nav-btn] span { display: none; } [data-nav-btn] { padding: 7px 10px !important; } }
+  @media (max-width: 860px) { [data-on-this-page], [data-section-nav-wrap] { display: none !important; } [data-problem-card] { grid-template-columns: 1fr !important; gap: 18px !important; } }
+  @media (max-width: 760px) { [data-copy-tip-side] { left: auto !important; right: 0 !important; top: auto !important; bottom: calc(100% + 9px) !important; transform: none !important; } [data-copy-tip-side]::after { display: none !important; } }
+  @media (max-width: 600px) { [data-solution-row] { grid-template-columns: 1fr !important; row-gap: 4px !important; } }
+</style>
+</helmet>
+
+<nav data-screen-label="Nav" style="max-width: 1120px; margin: 0 auto; padding: 16px clamp(14px, 4vw, 24px); display: flex; flex-wrap: wrap; align-items: center; gap: clamp(14px, 3vw, 28px); row-gap: 14px;">
+  <a href="#top" onClick="{{ scrollTopClear }}" style="display: flex; align-items: center; gap: 11px; color: #d3c6aa; font-weight: 600; font-size: 17px; white-space: nowrap;">
+    <img src="assets/logo.svg" alt="The Framework logo" style="width: 30px; height: 34px; display: block;">
+    The Framework
+  </a>
+  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: clamp(10px, 2.5vw, 20px); margin-left: auto; font-size: 14.5px;">
+    <a href="https://discord.gg/qc8zvdzWNR" data-nav-btn="1" style="display: inline-flex; align-items: center; gap: 8px; color: #d3c6aa; border: 1px solid #4f585e; border-radius: 8px; padding: 7px 14px; font-weight: 500;" style-hover="border-color: #859289; color: #d3c6aa;"><svg width="16" height="13" viewBox="0 0 127 96" fill="currentColor" aria-hidden="true"><path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"></path></svg><span>Discord</span></a>
+    <a href="https://github.com/gemstack-land/gemstack" data-nav-btn="1" style="display: inline-flex; align-items: center; gap: 8px; color: #d3c6aa; border: 1px solid #4f585e; border-radius: 8px; padding: 7px 14px; font-weight: 500;" style-hover="border-color: #859289; color: #d3c6aa;"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg><span>GitHub</span></a>
+  </div>
+</nav>
+
+<header id="top" data-screen-label="Hero" style="max-width: 1120px; margin: 0 auto; padding: clamp(20px, 4vw, 32px) clamp(14px, 4vw, 24px) 40px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 24px;">
+  <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; font-size: 12px; font-family: 'IBM Plex Mono', monospace;">
+    <span style="display: flex; align-items: center; gap: 7px; border: 1px solid #475258; border-radius: 999px; padding: 5px 12px; color: #a7c080;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #a7c080;"></span>100% Open Source</span>
+    <span style="display: flex; align-items: center; gap: 7px; border: 1px solid #475258; border-radius: 999px; padding: 5px 12px; color: #dbbc7f;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #dbbc7f;"></span>100% Free</span>
+    <span style="display: flex; align-items: center; gap: 7px; border: 1px solid #475258; border-radius: 999px; padding: 5px 12px; color: #7fbbb3;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #7fbbb3;"></span>100% Local</span>
+  </div>
+  <h1 style="margin: 0; font-size: clamp(32px, 11vw, 68px); line-height: 1.08; font-weight: 700; letter-spacing: -0.02em;">
+    <span style="display: table; position: relative; margin: 0 auto 12px; font-size: clamp(26px, 6vw, 42px); font-weight: 500; color: #9da9a0;" style-after="content: ''; position: absolute; left: -3%; top: 52%; width: 106%; height: 4px; border-radius: 2px; background: #e67e80; rotate: -2deg; transform-origin: left center; transform: scaleX(0.1); animation: strike 1.6s cubic-bezier(0.65, 0, 0.35, 1) 0.6s forwards;">Babysit AI</span>
+    Autonomous AI
+  </h1>
+  <p style="margin: -4px 0 0; font-size: clamp(19px, 4.5vw, 25px); font-weight: 500; line-height: 1.45; color: #d3c6aa; max-width: 680px; text-wrap: pretty;">Make the important decisions, let AI do the rest.</p>
+  <div style="display: flex; flex-direction: column; gap: 16px; align-items: center; margin-top: 20px; max-width: 100%;">
+    <div style="display: flex; flex-direction: column; gap: 7px; align-items: center; max-width: 100%;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #a7c080;">Try</span>
+      <div style="max-width: 100%; box-sizing: border-box; background: #232a2e; border: 1.5px solid #a7c080; box-shadow: 0 0 0 4px rgba(167, 192, 128, 0.12); border-radius: 12px; overflow: hidden; text-align: left;">
+        <div style="display: flex; align-items: center; gap: 4px; padding: 7px 8px; background: #2d353b; border-bottom: 1px solid #3d484d;">
+          <sc-for list="{{ pmTabs }}" as="t" hint-placeholder-count="4">
+            <button onClick="{{ t.select }}" style="background: {{ t.bg }}; border: 1px solid {{ t.border }}; color: {{ t.color }}; border-radius: 7px; padding: 4px 13px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; cursor: pointer;" style-hover="color: #d3c6aa;">{{ t.name }}</button>
+          </sc-for>
+          <span style="margin-left: auto; position: relative; background: #14181b; color: #d3c6aa; font-weight: 600; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 5px; padding: 4px 9px; opacity: {{ tryBadgeOpacity }}; transition: opacity 0.15s; pointer-events: none; user-select: none;" style-after="content: ''; position: absolute; top: 100%; right: 11px; border: 5px solid transparent; border-top-color: #14181b;">{{ tryLabel }}</span>
+        </div>
+        <div onClick="{{ copyTry }}" onMouseEnter="{{ tryEnter }}" onMouseLeave="{{ tryLeave }}" style-hover="background: rgba(167, 192, 128, 0.04);" style="position: relative; cursor: pointer; display: flex; flex-direction: column; gap: 7px; padding: 14px clamp(12px, 3vw, 20px); font-family: 'IBM Plex Mono', monospace; font-size: clamp(11px, 3.4vw, 15px);">
+          <div style="display: flex; flex-wrap: wrap; gap: 2px 16px;"><span><span style="user-select: none; color: #a7c080;">$ </span>{{ tryCmd }}</span><span style="color: #859289;"># Temporary install</span></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 2px 16px;"><span><span style="user-select: none; color: #a7c080;">$ </span>the-framework</span><span style="color: #859289;"># Run it</span></div>
+        </div>
+      </div>
+    </div>
+    <p style="margin: 0; font-size: 14px; color: #9da9a0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 100%;">Or permanent install:
+      <span onClick="{{ copyInstall }}" onMouseEnter="{{ installEnter }}" onMouseLeave="{{ installLeave }}" style="position: relative; cursor: pointer; display: inline-flex; align-items: center; background: #232a2e; border: 1px solid #475258; border-radius: 7px; padding: 4px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; word-break: break-all;" style-hover="border-color: #859289;"><span><span style="user-select: none; color: #a7c080;">$ </span>{{ installCmd }}</span>
+      <span data-copy-tip-side="1" style="position: absolute; left: calc(100% + 11px); top: 50%; transform: translateY(-50%); background: #14181b; color: #d3c6aa; font-weight: 600; font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 4px; padding: 4px 8px; white-space: nowrap; opacity: {{ installBadgeOpacity }}; transition: opacity 0.15s; pointer-events: none; user-select: none;" style-after="content: ''; position: absolute; right: 100%; top: 50%; margin-top: -5px; border: 5px solid transparent; border-right-color: #14181b;">{{ installLabel }}</span></span>
+    </p>
+  </div>
+  <div style="margin-top: 16px; padding-top: 8px; width: 100%; max-width: 1056px; box-sizing: border-box; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 48px; text-align: left;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #a7c080;">What is it?</span>
+      <p style="margin: 0; font-size: 15.5px; line-height: 1.7; color: #9da9a0; text-wrap: pretty;">The Framework turns AI agents into autonomous teammates that handle work end-to-end — while you stay in control of key decisions.</p>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #a7c080;">Any software</span>
+      <p style="margin: 0; font-size: 15.5px; line-height: 1.7; color: #9da9a0; text-wrap: pretty;">(Semi-)autonomously build anything from simple scripts and web apps to complex software (e.g. <a href="https://telefunc.com/stream">Telefunc Stream</a>).</p>
+    </div>
+  </div>
+</header>
+
+<div data-on-this-page="1" data-screen-label="On this page" style="display: flex; justify-content: center; align-items: center; gap: 8px; padding: 96px clamp(14px, 4vw, 24px) 8px; color: #a7c080; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; user-select: none;">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" style="flex: none;"><line x1="9" y1="6" x2="20" y2="6"></line><line x1="9" y1="12" x2="20" y2="12"></line><line x1="9" y1="18" x2="20" y2="18"></line><circle cx="4.5" cy="6" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="12" r="1.3" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="18" r="1.3" fill="currentColor" stroke="none"></circle></svg>
+  On this page
+</div>
+
+<div data-section-nav-wrap="1" data-screen-label="Section nav" style="background: #232a2e; border-top: 1px solid #3d484d; border-bottom: 1px solid #3d484d;">
+  <div data-nav-spacer="1" style="height: 53px;">
+  <div style="position: {{ navPos }}; top: 0; left: 0; right: 0; z-index: 50; background: rgba(35, 42, 46, 0.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: {{ navBorder }};">
+  <div data-section-nav="1" style="max-width: 1120px; margin: 0 auto; padding: 0 clamp(14px, 4vw, 24px); display: flex; justify-content: flex-start; align-items: center; gap: clamp(18px, 3vw, 30px); overflow-x: auto; scrollbar-width: none; font-family: 'IBM Plex Mono', monospace; font-size: 13px; white-space: nowrap;">
+    <a href="#top" onClick="{{ scrollTop }}" title="Back to top" style="flex: none; display: flex; align-items: center; padding: 11px 2px;"><img src="assets/logo.svg" alt="The Framework — back to top" style="width: 22px; height: 25px; display: block;"></a>
+    <span style="flex: 1;"></span>
+    <sc-for list="{{ sectionLinks }}" as="s" hint-placeholder-count="6">
+      <a href="{{ s.href }}" style="flex: none; color: {{ s.color }}; padding: 17px 2px 15px; border-bottom: 2px solid {{ s.border }};" style-hover="color: #d3c6aa;">{{ s.title }}<em style="font-style: italic;">{{ s.titleItalic }}</em>{{ s.titleRest }}</a>
+    </sc-for>
+    <span style="flex: 1;"></span>
+  </div>
+  </div>
+  </div>
+</div>
+
+<section id="stop-babysitting" data-screen-label="Stop babysitting" style="max-width: 1120px; margin: 0 auto; padding: clamp(56px, 10vw, 90px) clamp(14px, 4vw, 24px) 0; display: flex; flex-direction: column; gap: 36px;">
+  <div style="display: flex; flex-direction: column; gap: 12px; max-width: 640px;">
+    <h2 style="margin: 0; font-size: clamp(30px, 6vw, 40px); font-weight: 700; letter-spacing: -0.015em;">Stop babysitting</h2>
+    <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #9da9a0;">Stop losing time micro-managing agents — focus on what matters instead.</p>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 18px;">
+    <sc-for list="{{ problems }}" as="p" hint-placeholder-count="5">
+      <div data-problem-card="1" style="background: #343f44; border: 1px solid #3d484d; border-radius: 12px; padding: clamp(18px, 4vw, 28px); display: grid; grid-template-columns: 280px 1fr; gap: 32px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #e67e80;">Problem</span>
+          <h3 style="margin: 0; font-size: 21px; font-weight: 600; line-height: 1.3;">{{ p.title }}</h3>
+          <sc-if value="{{ p.desc }}" hint-placeholder-val="{{ false }}">
+            <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #9da9a0;">{{ p.desc }}</p>
+          </sc-if>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{ p.rows }}" as="r" hint-placeholder-count="2">
+            <div data-solution-row="1" style="display: grid; grid-template-columns: 118px 1fr; gap: 14px; align-items: baseline; padding: 12px 16px; border-radius: 9px; background: {{ r.bg }}; border: 1px solid {{ r.border }};">
+              <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: {{ r.labelColor }}; white-space: nowrap;"><span style="font-size: 16px; vertical-align: -2px; margin-right: 4px;">{{ r.emoji }}</span>{{ r.labelText }}</span>
+              <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #d3c6aa;">{{ r.body }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<section id="autonomous-ai" data-screen-label="Autonomous AI" style="max-width: 1120px; margin: 0 auto; padding: clamp(56px, 10vw, 90px) clamp(14px, 4vw, 24px) 0; display: flex; flex-direction: column; gap: 36px;">
+  <div style="display: flex; flex-direction: column; gap: 12px; max-width: 640px;">
+    <h2 style="margin: 0; font-size: clamp(30px, 6vw, 40px); font-weight: 700; letter-spacing: -0.015em;">Autonomous AI</h2>
+    <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #9da9a0;">Focus on what matters, let AI do the rest.</p>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 18px;">
+    <div style="background: #343f44; border: 1px solid #3d484d; border-radius: 12px; padding: clamp(18px, 4.5vw, 28px); display: flex; flex-direction: column; gap: 16px;">
+      <h3 style="margin: 0; font-size: 20px; font-weight: 600;">Autonomous Product Management</h3>
+      <p style="margin: 0; font-size: 14px; color: #859289;">Let AI autonomously:</p>
+      <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 11px; font-size: 15px; line-height: 1.55;">
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span>Test &amp; review</li>
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span>Spike, plan, and prioritize your tickets</li>
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span>Turn your team conversations into tickets</li>
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span><span>Save your team conversations to <code style="word-break: break-all; font-family: 'IBM Plex Mono', monospace; font-size: 13px; background: #232a2e; border-radius: 5px; padding: 2px 6px; color: #dbbc7f;">conversations/&lt;DATE&gt;_&lt;TOPICS_SLUG&gt;.md</code></span></li>
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span>Market research</li>
+      </ul>
+    </div>
+    <div style="background: #343f44; border: 1px solid #3d484d; border-radius: 12px; padding: clamp(18px, 4.5vw, 28px); display: flex; flex-direction: column; gap: 16px;">
+      <h3 style="margin: 0; font-size: 20px; font-weight: 600;">Autonomous Coding</h3>
+      <p style="margin: 0; font-size: 14px; color: #859289;">Let AI autonomously implement:</p>
+      <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 11px; font-size: 15px; line-height: 1.55;">
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span>Quick-wins</li>
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span>Quality refactoring</li>
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span>UX improvements</li>
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span>Consensual work</li>
+      </ul>
+    </div>
+  </div>
+  <div style="display: flex; gap: 18px; flex-wrap: wrap;">
+    <p style="flex: 1; min-width: min(280px, 100%); box-sizing: border-box; margin: 0; font-size: 14px; line-height: 1.6; color: #9da9a0; background: rgba(219, 188, 127, 0.07); border-left: 3px solid #dbbc7f; border-radius: 0 8px 8px 0; padding: 12px 16px; font-style: italic;"><span style="font-style: normal; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #dbbc7f; margin-right: 10px;">Note</span> Agents still ask for your confirmation for non-obvious decisions.</p>
+    <p style="flex: 1; min-width: min(280px, 100%); box-sizing: border-box; margin: 0; font-size: 14px; line-height: 1.6; color: #9da9a0; background: rgba(219, 188, 127, 0.07); border-left: 3px solid #dbbc7f; border-radius: 0 8px 8px 0; padding: 12px 16px; font-style: italic;"><span style="font-style: normal; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #dbbc7f; margin-right: 10px;">Note</span> You're still in control: only pick the autonomicity that works for you.</p>
+  </div>
+</section>
+
+<section id="enhanced-system-prompt" data-screen-label="Enhanced System Prompt" style="max-width: 1120px; margin: 0 auto; padding: clamp(56px, 10vw, 90px) clamp(14px, 4vw, 24px) 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: clamp(28px, 5vw, 48px); align-items: center;">
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    <h2 style="margin: 0; font-size: clamp(30px, 6vw, 40px); font-weight: 700; letter-spacing: -0.015em;">Enhanced System Prompt</h2>
+    <p style="margin: 0; font-size: 16.5px; line-height: 1.65; color: #9da9a0; text-wrap: pretty;">The Framework appends its own system prompt that instructs AI to follow highly effective practices — such as dividing large work into subtasks and listing significant alternative solutions.</p>
+    <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #9da9a0; background: rgba(219, 188, 127, 0.07); border-left: 3px solid #dbbc7f; border-radius: 0 8px 8px 0; padding: 12px 16px; font-style: italic;"><span style="font-style: normal; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #dbbc7f; margin-right: 10px;">Note</span> Customizable (or fully opt-out).</p>
+  </div>
+  <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px;">
+    <li style="background: #343f44; border: 1px solid #3d484d; border-radius: 10px; padding: 16px 20px; font-size: 15px; line-height: 1.5; display: flex; gap: 12px;"><span style="color: #a7c080;">✓</span>Avoiding AI from being lazy</li>
+    <li style="background: #343f44; border: 1px solid #3d484d; border-radius: 10px; padding: 16px 20px; font-size: 15px; line-height: 1.5; display: flex; gap: 12px;"><span style="color: #a7c080;">✓</span>Avoiding AI making implicit non-consensual decisions</li>
+    <li style="background: #343f44; border: 1px solid #3d484d; border-radius: 10px; padding: 16px 20px; font-size: 15px; line-height: 1.5; display: flex; gap: 12px;"><span style="color: #a7c080;">✓</span>Enhanced planning</li>
+    <li style="background: #343f44; border: 1px solid #3d484d; border-radius: 10px; padding: 16px 20px; font-size: 15px; line-height: 1.5; display: flex; gap: 12px;"><span style="color: #a7c080;">✓</span>Enhanced user confirmation — if variability, at-a-glance TL;DR choices</li>
+  </ul>
+</section>
+
+<section id="prompts" data-screen-label="High-quality prompts" style="max-width: 1120px; margin: 0 auto; padding: clamp(56px, 10vw, 90px) clamp(14px, 4vw, 24px) 0; display: flex; flex-direction: column; gap: 36px;">
+  <div style="display: flex; flex-direction: column; gap: 12px; max-width: 640px;">
+    <h2 style="margin: 0; font-size: clamp(30px, 6vw, 40px); font-weight: 700; letter-spacing: -0.015em;">High-quality prompts</h2>
+    <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #9da9a0;">Use state-of-the-art open source prompts, or bring your own.</p>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 18px;">
+    <div style="background: #343f44; border: 1px solid #3d484d; border-radius: 12px; padding: clamp(16px, 4.5vw, 24px); display: flex; flex-direction: column; gap: 10px;">
+      <h3 style="margin: 0; font-size: 17px; font-weight: 600;">Security audit</h3>
+      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #9da9a0;">Prompts that scrutinize your code for security vulnerabilities.</p>
+    </div>
+    <div style="background: #343f44; border: 1px solid #3d484d; border-radius: 12px; padding: clamp(16px, 4.5vw, 24px); display: flex; flex-direction: column; gap: 10px;">
+      <h3 style="margin: 0; font-size: 17px; font-weight: 600;">Code quality</h3>
+      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #9da9a0;">Prompts improving maintainability (e.g. DRY and simplicity), as well as making code more human readable.</p>
+    </div>
+    <div style="background: #343f44; border: 1px solid #3d484d; border-radius: 12px; padding: clamp(16px, 4.5vw, 24px); display: flex; flex-direction: column; gap: 10px;">
+      <h3 style="margin: 0; font-size: 17px; font-weight: 600;">Research</h3>
+      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #9da9a0;">Prompts for planning complex implementations, market research, and more.</p>
+    </div>
+    <div style="background: #343f44; border: 1px solid #3d484d; border-radius: 12px; padding: clamp(16px, 4.5vw, 24px); display: flex; flex-direction: column; gap: 10px;">
+      <h3 style="margin: 0; font-size: 17px; font-weight: 600;">Product Management</h3>
+      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #9da9a0;">Prompts for managing tickets (spiking &amp; planning, creating tickets from team conversations), creating roadmaps, suggesting new features, and more.</p>
+    </div>
+    <div style="background: transparent; border: 1.5px dashed #4f585e; border-radius: 12px; padding: clamp(16px, 4.5vw, 24px); display: flex; flex-direction: column; gap: 10px;">
+      <h3 style="margin: 0; font-size: 17px; font-weight: 600; color: #a7c080;">＋ Add yours</h3>
+      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #9da9a0;">Save your own tailored prompts.</p>
+    </div>
+  </div>
+</section>
+
+<section id="features" data-screen-label="Features" style="max-width: 1120px; margin: 0 auto; padding: clamp(56px, 10vw, 90px) clamp(14px, 4vw, 24px) 0; display: flex; flex-direction: column; gap: 36px;">
+  <div style="display: flex; flex-direction: column; gap: 12px; max-width: 640px;">
+    <h2 style="margin: 0; font-size: clamp(30px, 6vw, 40px); font-weight: 700; letter-spacing: -0.015em;">Features</h2>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 18px;">
+    <div style="display: flex; flex-direction: column; gap: 18px;">
+      <div style="background: #343f44; border: 1px solid #3d484d; border-radius: 12px; padding: clamp(18px, 4vw, 26px) clamp(16px, 4.5vw, 28px); display: flex; flex-direction: column; gap: 12px;">
+        <h3 style="margin: 0; font-size: 19px; font-weight: 600;">Bring your own subscription</h3>
+        <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #9da9a0;">Use your existing AI subscription — The Framework orchestrates agents via your Claude Code / Codex installation.</p>
+        <p data-wip="1" style="margin: 0; font-size: 13.5px; line-height: 1.6; color: #9da9a0; border: 1px dashed #4f585e; border-radius: 9px; padding: 11px 15px;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; color: #dbbc7f; border: 1px solid rgba(219, 188, 127, 0.4); border-radius: 4px; padding: 1px 6px; margin-right: 8px; white-space: nowrap; display: inline-block;">🚧 WIP</span>Claude Code Web: orchestrate agents via Claude Code Web for 0% local CPU usage.</p>
+      </div>
+      <div style="background: #343f44; border: 1px solid #3d484d; border-radius: 12px; padding: clamp(18px, 4vw, 26px) clamp(16px, 4.5vw, 28px); display: flex; flex-direction: column; gap: 12px;">
+        <h3 style="margin: 0; font-size: 19px; font-weight: 600;">Notifications</h3>
+        <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #9da9a0;">Get notified when AI is finished or needs you.</p>
+      </div>
+    </div>
+    <div style="background: #343f44; border: 1px solid #3d484d; border-radius: 12px; padding: clamp(18px, 4vw, 26px) clamp(16px, 4.5vw, 28px); display: flex; flex-direction: column; gap: 14px;">
+      <h3 style="margin: 0; font-size: 19px; font-weight: 600;">Dashboard</h3>
+      <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #9da9a0;">See your pro-rata usage quota, the list of current and queued AI tasks, the reviews required from you, and more.</p>
+      <div style="background: #232a2e; border: 1px solid #3d484d; border-radius: 10px; overflow: hidden; font-family: 'IBM Plex Mono', monospace;">
+        <div style="display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid #3d484d;">
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: #e67e80;"></span>
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: #dbbc7f;"></span>
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: #a7c080;"></span>
+          <span style="margin-left: 10px; font-size: 11px; color: #859289;">framework — dashboard</span>
+        </div>
+        <div style="padding: clamp(12px, 3vw, 16px) clamp(12px, 3vw, 18px); display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; justify-content: space-between; font-size: 11px; color: #859289;"><span>usage quota (pro-rata)</span><span style="color: #a7c080;">62%</span></div>
+            <div style="height: 6px; background: #343f44; border-radius: 3px;"><div style="height: 6px; width: 62%; background: #a7c080; border-radius: 3px;"></div></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px;"><span style="color: #d3c6aa;">▸ refactor auth module</span><span style="color: #7fbbb3;">running</span></div>
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px;"><span style="color: #d3c6aa;">▸ spike: offline mode</span><span style="color: #859289;">queued</span></div>
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px;"><span style="color: #d3c6aa;">▸ security audit</span><span style="color: #859289;">queued</span></div>
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px;"><span style="color: #d3c6aa;">▸ ticket triage (12 new)</span><span style="color: #dbbc7f;">needs review</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="your-framework" data-screen-label="Your framework" style="max-width: 1120px; margin: 0 auto; padding: clamp(56px, 10vw, 90px) clamp(14px, 4vw, 24px) 0; display: flex; flex-direction: column; gap: 36px;">
+  <div style="display: flex; flex-direction: column; gap: 12px; max-width: 640px;">
+    <h2 style="margin: 0; font-size: clamp(30px, 6vw, 40px); font-weight: 700; letter-spacing: -0.015em;"><em style="font-style: italic; color: #a7c080;">Your</em> framework</h2>
+    <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #9da9a0;">It isn't our framework — it's <em>yours</em>.</p>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 18px;">
+    <div style="background: #343f44; border: 1px solid #3d484d; border-radius: 12px; padding: clamp(18px, 4.5vw, 26px); display: flex; flex-direction: column; gap: 14px;">
+      <h3 style="margin: 0; font-size: 18px; font-weight: 600;">Flexible</h3>
+      <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 14.5px; line-height: 1.55; color: #9da9a0;">
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span>The Framework doesn't force anything: pick only the features you need</li>
+        <li data-wip="1" style="display: flex; gap: 10px;"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; color: #dbbc7f; border: 1px solid rgba(219, 188, 127, 0.4); border-radius: 4px; padding: 1px 6px; align-self: flex-start; margin-top: 2px; white-space: nowrap;">🚧 WIP</span>Customize anything to fit your needs</li>
+      </ul>
+    </div>
+    <div style="background: #343f44; border: 1px solid #3d484d; border-radius: 12px; padding: clamp(18px, 4.5vw, 26px); display: flex; flex-direction: column; gap: 14px;">
+      <h3 style="margin: 0; font-size: 18px; font-weight: 600;">100% Local</h3>
+      <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 14.5px; line-height: 1.55; color: #9da9a0;">
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span>Runs locally on your machine, like a desktop app</li>
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span>No backdoors, no tracking</li>
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span><span>Knowledge saved as <code style="word-break: break-all; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; background: #232a2e; border-radius: 5px; padding: 2px 6px; color: #dbbc7f;">knowledge-base/*.md</code> in your Git repository</span></li>
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span>You fully own your data</li>
+      </ul>
+    </div>
+    <div style="background: #343f44; border: 1px solid #3d484d; border-radius: 12px; padding: clamp(18px, 4.5vw, 26px); display: flex; flex-direction: column; gap: 14px;">
+      <h3 style="margin: 0; font-size: 18px; font-weight: 600;">100% Open Source</h3>
+      <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 14.5px; line-height: 1.55; color: #9da9a0;">
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span>Transparent — no hidden code</li>
+        <li style="display: flex; gap: 10px;"><span style="color: #a7c080;">✓</span>Something's not working for you? Ask your favorite AI to make a Pull Request — we welcome agentic contributions!</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section data-screen-label="Ending CTA" style="max-width: 880px; margin: 0 auto; padding: clamp(72px, 12vw, 110px) clamp(14px, 4vw, 24px) clamp(56px, 10vw, 90px); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 22px;">
+  <img src="assets/logo.svg" alt="" style="width: 52px; height: 59px;">
+  <h2 style="margin: 0; font-size: clamp(26px, 6vw, 36px); font-weight: 700; letter-spacing: -0.015em; text-wrap: pretty;">Join our community of next-gen developers <img src="assets/emoji-flex.svg" alt="💪" style="height: 1em; vertical-align: -0.12em;"><img src="assets/emoji-mech-arm.svg" alt="🦾" style="height: 1em; vertical-align: -0.12em;"></h2>
+  <div style="display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;">
+    <a href="https://discord.gg/qc8zvdzWNR" style="display: inline-flex; align-items: center; gap: 10px; background: #a7c080; color: #2d353b; font-weight: 600; font-size: 16px; border-radius: 10px; padding: 13px 26px;" style-hover="background: #b5cc92; color: #2d353b;"><svg width="19" height="15" viewBox="0 0 127 96" fill="currentColor" aria-hidden="true"><path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"></path></svg>Join us on Discord</a>
+    <a href="https://github.com/gemstack-land/gemstack" style="display: inline-flex; align-items: center; gap: 10px; border: 1px solid #4f585e; color: #d3c6aa; font-weight: 500; font-size: 16px; border-radius: 10px; padding: 13px 26px;" style-hover="border-color: #859289; color: #d3c6aa;"><svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>Star on GitHub</a>
+  </div>
+</section>
+
+<footer style="border-top: 1px solid #3d484d; padding: 28px clamp(14px, 4vw, 24px); max-width: 1120px; margin: 0 auto; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 24px; row-gap: 12px; font-size: 13.5px; color: #859289;">
+  <span style="display: flex; align-items: center; gap: 9px;"><img src="assets/logo.svg" alt="" style="width: 20px; height: 23px;">The Framework</span>
+  <span style="margin-left: auto; display: flex; gap: 20px;">
+    <a href="https://discord.gg/qc8zvdzWNR" style="display: inline-flex; align-items: center; gap: 7px; color: #859289;" style-hover="color: #d3c6aa;"><svg width="15" height="12" viewBox="0 0 127 96" fill="currentColor" aria-hidden="true"><path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"></path></svg>Discord</a>
+    <a href="https://github.com/gemstack-land/gemstack" style="display: inline-flex; align-items: center; gap: 7px; color: #859289;" style-hover="color: #d3c6aa;"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>GitHub</a>
+    <a href="https://www.npmjs.com/package/@gemstack/the-framework" style="display: inline-flex; align-items: center; gap: 7px; color: #859289;" style-hover="color: #d3c6aa;"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 0v16h16V0H0zm13 13h-2V5H8v8H3V3h10v10z"></path></svg>npm</a>
+  </span>
+</footer>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showWip&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Content&quot;}}">
+class Component extends DCLogic {
+  static SECTIONS = [
+    { id: 'stop-babysitting', title: 'Stop babysitting' },
+    { id: 'autonomous-ai', title: 'Autonomous AI' },
+    { id: 'enhanced-system-prompt', title: 'Enhanced System Prompt' },
+    { id: 'prompts', title: 'High-quality prompts' },
+    { id: 'features', title: 'Features' },
+    { id: 'your-framework', title: 'Your framework', italicFirst: true },
+  ];
+  state = { copiedTry: false, copiedInstall: false, pm: 'npm', activeSection: '' };
+  componentDidMount() {
+    this.applyWip();
+    this._onScroll = () => {
+      let active = '';
+      for (const s of Component.SECTIONS) {
+        const el = document.getElementById(s.id);
+        if (el && el.getBoundingClientRect().top <= 130) active = s.id;
+      }
+      // sticky is broken by the runtime's height-constrained wrapper → use fixed past the hero
+      const holder = document.querySelector('[data-nav-spacer]');
+      const fixed = holder ? holder.getBoundingClientRect().top <= 0 : false;
+      if (active !== this.state.activeSection || fixed !== this.state.navFixed) {
+        this.setState({ activeSection: active, navFixed: fixed });
+        // keep URL hash in sync with the visible section
+        const hash = active ? '#' + active : '';
+        if (window.location.hash !== hash) {
+          history.replaceState(null, '', hash || window.location.pathname + window.location.search);
+        }
+      }
+    };
+    window.addEventListener('scroll', this._onScroll, { passive: true });
+    this._onScroll();
+  }
+  componentWillUnmount() { window.removeEventListener('scroll', this._onScroll); }
+  componentDidUpdate() { this.applyWip(); }
+  applyWip() {
+    const hide = this.props.showWip === false;
+    let el = document.getElementById('wip-toggle-style');
+    if (!el) { el = document.createElement('style'); el.id = 'wip-toggle-style'; document.head.appendChild(el); }
+    el.textContent = hide ? '[data-wip]{display:none !important}' : '';
+  }
+  copyClick(text, key, e) {
+    // Instant copy on single click; ignore the extra clicks of a double/triple-click
+    // (text selection) and don't re-render while a selection exists.
+    if (e && e.detail > 1) return;
+    if (String(window.getSelection()).length) return;
+    this.copy(text, key);
+  }
+  copy(text, key) {
+    const done = () => {
+      this.setState({ [key]: true });
+      setTimeout(() => {
+        // Don't re-render mid-selection (it would clear the user's selection)
+        if (String(window.getSelection()).length) {
+          setTimeout(() => this.setState({ [key]: false }), 2000);
+        } else this.setState({ [key]: false });
+      }, 1500);
+    };
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      ta.remove();
+      done();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else fallback();
+  }
+  renderVals() {
+    const rowStyles = {
+      bad: { bg: '#2d353b', border: '#3d484d', labelColor: '#859289' },
+      good: { bg: '#232a2e', border: '#475258', labelColor: '#a7c080' },
+    };
+    const mk = (kind, label, body) => {
+      const [emoji, ...rest] = label.split(' ');
+      return { ...rowStyles[kind], emoji, labelText: rest.join(' '), body };
+    };
+    const pms = {
+      npm: { try: 'npx @gemstack/the-framework', install: 'npm i -g @gemstack/the-framework' },
+      pnpm: { try: 'pnpm dlx @gemstack/the-framework', install: 'pnpm add -g @gemstack/the-framework' },
+      bun: { try: 'bunx @gemstack/the-framework', install: 'bun add -g @gemstack/the-framework' },
+      yarn: { try: 'yarn dlx @gemstack/the-framework', install: 'yarn global add @gemstack/the-framework' },
+    };
+    const cmds = pms[this.state.pm];
+    const pmTabs = Object.keys(pms).map((name) => {
+      const active = name === this.state.pm;
+      return {
+        name,
+        select: () => this.setState({ pm: name }),
+        bg: active ? '#232a2e' : 'transparent',
+        border: active ? '#475258' : 'transparent',
+        color: active ? '#d3c6aa' : '#859289',
+      };
+    });
+    return {
+      scrollTop: (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+      scrollTopClear: (e) => {
+        e.preventDefault();
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+      navPos: this.state.navFixed ? 'fixed' : 'static',
+      navBorder: this.state.navFixed ? '1px solid #3d484d' : 'none',
+      sectionLinks: Component.SECTIONS.map((s, i) => {
+        const active = this.state.activeSection === s.id;
+        const [first, ...rest] = s.title.split(' ');
+        return {
+          href: '#' + s.id,
+          num: (i + 1) + '.',
+          title: s.italicFirst ? '' : s.title,
+          titleItalic: s.italicFirst ? first : '',
+          titleRest: s.italicFirst ? ' ' + rest.join(' ') : '',
+          color: active ? '#a7c080' : '#9da9a0',
+          numColor: active ? '#a7c080' : '#616e75',
+          border: active ? '#a7c080' : 'transparent',
+        };
+      }),
+      pmTabs,
+      tryCmd: cmds.try,
+      installCmd: cmds.install,
+      tryLabel: this.state.copiedTry ? 'copied!' : 'copy',
+      installLabel: this.state.copiedInstall ? 'copied!' : 'copy',
+      // labels render uppercase via CSS
+      tryBadgeOpacity: this.state.copiedTry || this.state.hoverTry ? 1 : 0,
+      installBadgeOpacity: this.state.copiedInstall || this.state.hoverInstall ? 1 : 0,
+      tryEnter: () => this.setState({ hoverTry: true }),
+      tryLeave: () => this.setState({ hoverTry: false }),
+      installEnter: () => this.setState({ hoverInstall: true }),
+      installLeave: () => this.setState({ hoverInstall: false }),
+      copyTry: (e) => this.copyClick(cmds.try + ' && the-framework', 'copiedTry', e),
+      copyInstall: (e) => this.copyClick(cmds.install, 'copiedInstall', e),
+      problems: [
+        { title: 'AI is lazy', desc: null, rows: [
+          mk('bad', '😕 Bad fix', 'Appending "DON\'T BE LAZY" to your prompts → minimal improvement.'),
+          mk('good', '🚀 Solution', 'Divide-and-conquer: The Framework instructs AI to split large tasks into smaller subtasks. By focusing on one unit of work at a time, AI spends significantly more effort overall, resulting in much higher-quality output.'),
+          mk('good', '🚀 Solution', 'Coverage guarantees: The Framework lets AI enumerate everything that needs to be done before writing code. AI then works through that checklist, ensuring comprehensive coverage and preventing lazy shortcuts.'),
+        ]},
+        { title: 'Lazy planning', desc: null, rows: [
+          mk('bad', '😕 Bad fix', 'Tell AI to deep dive for each important aspect.'),
+          mk('good', '🚀 Solution', 'Powerful loop of critical feedback and research.'),
+        ]},
+        { title: 'Lazy low-quality code', desc: 'Despite AI being able to write high-quality code, it often goes for the quickest/laziest solution (not correct, not maintainable, not DRY).', rows: [
+          mk('bad', '😕 Bad fix', 'Appending "WRITE the HIGHEST quality code you ever wrote" to your prompts → minimal improvement.'),
+          mk('good', '🚀 Solution', 'The Framework makes AI question and review itself until it\'s highly confident about its implementation.'),
+        ]},
+        { title: 'AI makes important decisions without asking', desc: null, rows: [
+          mk('bad', '😕 Bad fix', 'Tell AI "don\'t do this, research alternatives".'),
+          mk('good', '🚀 Solution', 'The Framework makes AI gauge the variability of its implementation: if there are alternatives with subtle pros and cons, show them to the user.'),
+        ]},
+        { title: 'AI forgets', desc: null, rows: [
+          mk('bad', '😕 Bad fix', 'You keep repeating yourself (previous decisions, business context, …).'),
+          mk('good', '🚀 Solution', 'The Framework\'s Enhanced System Prompt tells AI to retain knowledge in files such as knowledge-base/DECISIONS.md and knowledge-base/INSIGHTS.md. (See section 03 below.)'),
+        ]},
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
