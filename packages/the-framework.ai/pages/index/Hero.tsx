@@ -52,12 +52,12 @@ export function Hero() {
       style={{
         maxWidth: 1120,
         margin: '0 auto',
-        padding: 'clamp(20px, 4vw, 32px) clamp(14px, 4vw, 24px) 40px',
+        padding: 'clamp(16px, 3vw, 24px) clamp(14px, 4vw, 24px) 32px',
         textAlign: 'center',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 24,
+        gap: 20,
       }}
     >
       <div
@@ -109,7 +109,7 @@ export function Hero() {
           style={{
             display: 'table',
             position: 'relative',
-            margin: '0 auto 12px',
+            margin: '0 auto 0px',
             fontSize: 'clamp(26px, 6vw, 42px)',
             fontWeight: 500,
             color: '#9da9a0',
@@ -121,7 +121,7 @@ export function Hero() {
       </h1>
       <p
         style={{
-          margin: '-4px 0 0',
+          margin: '-10px 0 0',
           fontSize: 'clamp(19px, 4.5vw, 25px)',
           fontWeight: 500,
           lineHeight: 1.45,
@@ -139,13 +139,14 @@ export function Hero() {
           flexDirection: 'column',
           gap: 16,
           alignItems: 'center',
-          marginTop: 20,
+          marginTop: 18,
           maxWidth: '100%',
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, alignItems: 'center', maxWidth: '100%' }}>
-          <span style={kickerStyle}>Try</span>
+          <span style={kickerStyle}>Try:</span>
           <div
+            className="try-box"
             style={{
               maxWidth: '100%',
               boxSizing: 'border-box',
