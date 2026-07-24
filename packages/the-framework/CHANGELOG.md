@@ -1,5 +1,21 @@
 # @gemstack/the-framework
 
+## 1.3.1
+
+### Patch Changes
+
+- f09a5d8: Fix the navbar overflowing the page at narrow widths.
+
+  Below a narrow viewport the top nav pushed the whole document wider than the screen, so the page scrolled sideways and slid the app off-screen. The cause was the nav's fixed clusters: the brand mark plus wordmark on one side and the "New session" button plus the icon buttons on the other were both `shrink-0`, so together with the project picker they could not fit a phone-width viewport.
+
+  Below `sm` the nav now folds down to what fits: the brand keeps its mark (still the link home) but drops the "The Framework" wordmark, the "New session" button collapses to its `+` icon (still labelled for a screen reader), and the project picker caps narrower and truncates a long name. At `sm` and up everything is exactly as before. Verified by driving a real browser at 375px and 420px (no page scroll) and at 1200px (labels back); jsdom cannot see this class of layout bug.
+
+- 0e37ffd: Add a "Suggest new features" preset.
+
+  The Agentic-PM presets covered proposing work items you describe (Suggest new tickets), researching the outside market (Market research), and choosing among tickets that already exist (Suggest tickets to work on) — but not proposing net-new features from the product itself. This fills that corner: it studies what the product does today and proposes features it should have next, writing each as a ticket under `tickets/` for the normal triage pipeline to pick up.
+
+  Autonomous rather than gated, like the other suggest-class presets: a proposal is a reviewable ticket, so the human triages later instead of approving mid-run, which also keeps it usable on a schedule. Paramless — it scopes itself to the whole product, so there is no blank to fill.
+
 ## 1.3.0
 
 ### Minor Changes
